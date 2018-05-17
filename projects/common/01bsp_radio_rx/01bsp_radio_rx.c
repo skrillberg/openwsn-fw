@@ -69,11 +69,13 @@ len=17  num=84  rssi=-81  lqi=108 crc=1
 #include "leds.h"
 #include "uart.h"
 #include "sctimer.h"
+#include <headers/hw_memmap.h>
+#include "source/gpio.h"
 
 //=========================== defines =========================================
 
-#define LENGTH_PACKET        125+LENGTH_CRC ///< maximum length is 127 bytes
-#define CHANNEL              11             ///< 11 = 2.405GHz
+#define LENGTH_PACKET        8+LENGTH_CRC ///< maximum length is 127 bytes
+#define CHANNEL              20            ///< 11 = 2.405GHz
 #define LENGTH_SERIAL_FRAME  8              ///< length of the serial frame
 
 //=========================== variables =======================================
@@ -110,9 +112,7 @@ void cb_radioTimerOverflows(void);
 // radio
 void cb_startFrame(PORT_TIMER_WIDTH timestamp);
 void cb_endFrame(PORT_TIMER_WIDTH timestamp);
-// uart
-void cb_uartTxDone(void);
-void cb_uartRxCb(void);
+
 
 //=========================== main ============================================
 
@@ -120,7 +120,7 @@ void cb_uartRxCb(void);
 \brief The program starts executing here.
 */
 int mote_main(void) {
-   
+   int i=0;
    // clear local variables
    memset(&app_vars,0,sizeof(app_vars_t));
    
@@ -128,11 +128,11 @@ int mote_main(void) {
    board_init();
    
    // add callback functions radio
-   sctimer_setStartFrameCb(cb_startFrame);
-   sctimer_setEndFrameCb(cb_endFrame);
+   radio_setStartFrameCb(cb_startFrame);
+   radio_setEndFrameCb(cb_endFrame);
    
    // setup UART
-   uart_setCallbacks(cb_uartTxDone,cb_uartRxCb);
+  // uart_setCallbacks(cb_uartTxDone,cb_uartRxCb);
    
    // prepare radio
    radio_rfOn();
@@ -140,13 +140,25 @@ int mote_main(void) {
    
    // switch in RX
    radio_rxEnable();
-   
+   uint8_t packet[10] = {0,0,0,0,0,0,0,0,0,0};
+   radio_loadPacket(packet,LENGTH_PACKET);
+   radio_txEnable();
+   radio_txNow();
    while (1) {
-      
+      int j = 0;
       // sleep while waiting for at least one of the rxpk_done to be set
       app_vars.rxpk_done = 0;
       while (app_vars.rxpk_done==0) {
-         board_sleep();
+       // leds_debug_on();
+	j=0;
+	//while(j<1000000){
+	//	j+=1;
+	//}
+	j=0;
+	//leds_debug_off();
+	//while(j<1000000){
+	//	j+=1;
+	//}
       }
       
       // if I get here, I just received a packet
@@ -168,16 +180,45 @@ int mote_main(void) {
       
       app_vars.uart_done          = 0;
       app_vars.uart_lastTxByte    = 0;
-      
-      // send app_vars.uart_txFrame over UART
-      uart_clearTxInterrupts();
-      uart_clearRxInterrupts();
-      uart_enableInterrupts();
-      uart_writeByte(app_vars.uart_txFrame[app_vars.uart_lastTxByte]);
-      while (app_vars.uart_done==0); // busy wait to finish
-      uart_disableInterrupts();
-      
-      // led
+      	int packet_valid;
+	  packet_valid = ((app_vars.rxpk_crc != 0) && (app_vars.rxpk_buf[4] == 0xB5) && (app_vars.rxpk_buf[5] == 0xAC)  && (app_vars.rxpk_buf[6] == 0xA5) && (app_vars.rxpk_buf[7] == 0xB1));
+	  if(packet_valid){
+
+		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] ==1)){
+			leds_sync_on();
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
+			//set right output pin high 
+		}
+		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] == 2)){
+			leds_debug_on();
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,GPIO_PIN_1);
+		//set left output pin high
+		}
+
+		
+	
+
+		
+		//leds_debug_off();
+
+		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] ==1)){
+			leds_sync_off();
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
+			//set right output pin high 
+		}
+		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] == 2)){
+			leds_debug_off();
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,GPIO_PIN_1);
+			//set left output pin high
+		}
+
+			
+		}
+
+	  for(j=0;j<10000;j++){
+	}	
+	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,0);
+	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
       leds_error_off();
    }
 }
@@ -218,27 +259,6 @@ void cb_endFrame(PORT_TIMER_WIDTH timestamp) {
    leds_sync_off();
 }
 
-//===== uart
 
-void cb_uartTxDone(void) {
-   
-   uart_clearTxInterrupts();
-   
-   // prepare to send the next byte
-   app_vars.uart_lastTxByte++;
-   
-   if (app_vars.uart_lastTxByte<sizeof(app_vars.uart_txFrame)) {
-      uart_writeByte(app_vars.uart_txFrame[app_vars.uart_lastTxByte]);
-   } else {
-      app_vars.uart_done=1;
-   }
-}
 
-void cb_uartRxCb(void) {
-   
-   //  uint8_t byte;
-   uart_clearRxInterrupts();
-   
-   // toggle LED
-   leds_debug_toggle();
-}
+

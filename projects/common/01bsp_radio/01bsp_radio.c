@@ -33,7 +33,7 @@ end of frame event), it will turn on its error LED.
 //=========================== defines =========================================
 
 #define LENGTH_PACKET   8+LENGTH_CRC ///< maximum length is 127 bytes
-#define CHANNEL         20             ///< 11=2.405GHz
+#define CHANNEL         14             ///< 11=2.405GHz
 #define TX_CHANNEL	20	       /// tx channel of individual mote 
 #define TIMER_PERIOD    0xffff         ///< 0xffff = 2s@32kHz
 #define ID              0xff           ///< byte sent in the packets
@@ -41,8 +41,8 @@ end of frame event), it will turn on its error LED.
 #define NUM_ATTEMPTS	2	       ///<number of times packet is resent, needs to match number of motes for multichan experiments
 #define RxMOTE		false
 #define MOTE_NUM	1	           // index that sets rx mote channel
-#define MULTICHAN_TX    false
-#define CHANNEL_HOP	6		//number of channels to hop by 
+#define MULTICHAN_TX    true
+#define CHANNEL_HOP	6		//number of channels to hop by
 #define LEFT_SENSOR_HIGH 2
 #define RIGHT_SENSOR_HIGH 1
 //=========================== variables =======================================
@@ -307,6 +307,9 @@ uint32_t last_pin_state = 0;
 
 		     }else{
                         tx_count=0;
+                		//reset sensor states
+                		left_state = 0;
+                		right_state = 0;
 		     }
 		  }
                   // switch to RX mode (only if rxmote?)
@@ -326,11 +329,11 @@ uint32_t last_pin_state = 0;
 
 	    //GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0x00);
 	    //GPIOPinWrite(GPIO_A_BASE, GPIO_PIN_3,0);
-		int index;
-		for(index = 0; index<50000; index++){
-		}
-	  	 GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
-		GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,0);
+		//int index;
+		//for(index = 0; index<50000; index++){
+		//}
+	  	// GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
+		//GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,0);
          }
          
          
@@ -381,9 +384,7 @@ uint32_t last_pin_state = 0;
 		}
 		//app_vars.packet[0] = (left_state<<1) |(right_state);
 		
-		//reset sensor states
-		left_state = 0;
-		right_state = 0;
+
 
                // start transmitting packet
 

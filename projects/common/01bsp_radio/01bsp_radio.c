@@ -135,7 +135,7 @@ void configure_pins(void){
 
       GPIOPinIntEnable(GPIO_A_BASE,GPIO_PIN_5);
 
-
+      GPIOPinTypeGPIOOutput(GPIO_D_BASE,GPIO_PIN_0);
 }
 
 //=========================== main ============================================
@@ -145,7 +145,7 @@ void configure_pins(void){
 */
 int mote_main(void) {
 
-uint16_t passphrase[4] = {0xB5,0xAC,0xA5,0XB1}; 
+uint16_t passphrase[4] = {0xAC,0xAC,0xA5,0XB1};
 tx_packet_count=0; //reset packet sent counter
 rx_packet_count=0; //reset packet rx counter
 //count = 0; //counter for verifying packet contents
@@ -211,8 +211,8 @@ uint32_t last_pin_state = 0;
    if(RxMOTE){
       radio_rxEnable();
    } else{
-	HWREG(RFCORE_XREG_RXENABLE) = 0; //disable rx
-	HWREG(RFCORE_XREG_FRMCTRL1)    = HWREG(RFCORE_XREG_FRMCTRL1) & 0b110; //prevents stxon instruction from enabling rx, this is really important because it prevents tx motes from ever receiving anything 
+	//HWREG(RFCORE_XREG_RXENABLE) = 0; //disable rx
+	//HWREG(RFCORE_XREG_FRMCTRL1)    = HWREG(RFCORE_XREG_FRMCTRL1) & 0b110; //prevents stxon instruction from enabling rx, this is really important because it prevents tx motes from ever receiving anything
    }
    app_vars.state = APP_STATE_RX;
    
@@ -318,22 +318,14 @@ uint32_t last_pin_state = 0;
                   }
                   app_vars.state = APP_STATE_RX;
                   
-                  // leds reset after tx
-                  //leds_sync_off();
-		 // GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,0);
+
 		 
                   break;
             }
             // clear flag
             app_vars.flags &= ~APP_FLAG_END_FRAME;
 
-	    //GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0x00);
-	    //GPIOPinWrite(GPIO_A_BASE, GPIO_PIN_3,0);
-		//int index;
-		//for(index = 0; index<50000; index++){
-		//}
-	  	// GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
-		//GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,0);
+
          }
          
          
@@ -347,13 +339,6 @@ uint32_t last_pin_state = 0;
                   // stop listening (this doesn't do much)
                   radio_rfOff();
 
-                  /* this method is from original bsp and isn't used for the counter based packet
-                  // prepare packet
-                  app_vars.packet_len = sizeof(app_vars.packet);
-                  for (i=0;i<app_vars.packet_len;i++) {
-                  app_vars.packet[i] = ID;
-               }
-               */
 		   // prepare packet. This loads the 32bit counter into the packet
    		   app_vars.packet_len = sizeof(app_vars.packet);
    		   for (i=0;i<app_vars.packet_len;i++) {
@@ -397,7 +382,7 @@ uint32_t last_pin_state = 0;
                   radio_txNow();
     
                   app_vars.state = APP_STATE_TX;
-
+                  GPIOPinWrite(GPIO_D_BASE,GPIO_PIN_0,0);
                }
            // }
             // clear flag
@@ -450,14 +435,14 @@ void cb_button(void){
    }
    l_debounce_complete = 0;
    r_debounce_complete = 0;
-   for( k =0;k<10;k++){
-   }
-   if(GPIOPinRead(GPIO_A_BASE, GPIO_PIN_2)!=0){
+  // for( k =0;k<10;k++){
+  // }
+ //  if(GPIOPinRead(GPIO_A_BASE, GPIO_PIN_2)!=0){
       l_debounce_complete=1;
-   }
-   if(GPIOPinRead(GPIO_A_BASE, GPIO_PIN_5)!=0){
+   //}
+  // if(GPIOPinRead(GPIO_A_BASE, GPIO_PIN_5)!=0){
       r_debounce_complete=1;
-   }
+  // }
 
    if(int_status & GPIO_PIN_2){
       leds_error_on();
@@ -473,7 +458,7 @@ void cb_button(void){
       leds_error_off();
    if(l_debounce_complete || r_debounce_complete ){
       app_vars.flags |= APP_FLAG_TIMER;
-      
+      GPIOPinWrite(GPIO_D_BASE,GPIO_PIN_0,GPIO_PIN_0);
    }
 
 

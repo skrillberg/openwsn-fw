@@ -126,7 +126,7 @@ int mote_main(void) {
    
    // initialize board
    board_init();
-   
+
    // add callback functions radio
    radio_setStartFrameCb(cb_startFrame);
    radio_setEndFrameCb(cb_endFrame);
@@ -144,21 +144,15 @@ int mote_main(void) {
    radio_loadPacket(packet,LENGTH_PACKET);
    radio_txEnable();
    radio_txNow();
+ 	int packet_valid;
+
    while (1) {
+	   packet_valid = 0;
       int j = 0;
       // sleep while waiting for at least one of the rxpk_done to be set
       app_vars.rxpk_done = 0;
       while (app_vars.rxpk_done==0) {
        // leds_debug_on();
-	j=0;
-	//while(j<1000000){
-	//	j+=1;
-	//}
-	j=0;
-	//leds_debug_off();
-	//while(j<1000000){
-	//	j+=1;
-	//}
       }
       
       // if I get here, I just received a packet
@@ -180,45 +174,33 @@ int mote_main(void) {
       
       app_vars.uart_done          = 0;
       app_vars.uart_lastTxByte    = 0;
-      	int packet_valid;
-	  packet_valid = ((app_vars.rxpk_crc != 0) && (app_vars.rxpk_buf[4] == 0xB5) && (app_vars.rxpk_buf[5] == 0xAC)  && (app_vars.rxpk_buf[6] == 0xA5) && (app_vars.rxpk_buf[7] == 0xB1));
+
+	  packet_valid = ((app_vars.rxpk_crc != 0) && (app_vars.rxpk_buf[4] == 0xAC) && (app_vars.rxpk_buf[5] == 0xAC)  && (app_vars.rxpk_buf[6] == 0xA5) && (app_vars.rxpk_buf[7] == 0xB1));
 	  if(packet_valid){
 
 		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] ==1)){
 			leds_sync_on();
 			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,GPIO_PIN_0);
+			  for(j=0;j<50000;j++){
+			}
 			//set right output pin high 
 		}
 		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] == 2)){
 			leds_debug_on();
 			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,GPIO_PIN_1);
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,GPIO_PIN_0);
+			  for(j=0;j<50000;j++){
+			}
 		//set left output pin high
 		}
 
-		
-	
-
-		
-		//leds_debug_off();
-
-		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] ==1)){
-			leds_sync_off();
-			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
-			//set right output pin high 
-		}
-		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] == 2)){
-			leds_debug_off();
-			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,GPIO_PIN_1);
-			//set left output pin high
 		}
 
-			
-		}
 
-	  for(j=0;j<10000;j++){
-	}	
 	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,0);
 	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
+	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,0);
       leds_error_off();
    }
 }

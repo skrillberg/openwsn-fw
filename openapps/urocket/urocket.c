@@ -20,7 +20,7 @@
 #include <math.h>
 //========================== Defines ==========================================
 
-#define UROCKET_PERIOD_MS	10  //how often control task gets pushed to scheduler in ms
+#define UROCKET_PERIOD_MS	100  //how often control task gets pushed to scheduler in ms
 #define GYRO_FSR			2000 //gyro full scale range in deg/s
 
 //========================== Global Variables =================================
@@ -43,7 +43,7 @@ void urocket_init(void) {
     urocket_vars.desc.port              = WKP_UDP_ROCKET;
     urocket_vars.desc.callbackReceive   = &urocket_receive;
     urocket_vars.desc.callbackSendDone  = &urocket_sendDone;
-    openudp_register(&urocket_vars.desc);
+//    openudp_register(&urocket_vars.desc);
 
     //initialize uart and imu/dmp
 	uartMimsyInit();
@@ -52,7 +52,7 @@ void urocket_init(void) {
 	mimsyLedSet(GREEN_LED);
 
     servo_init(3,20,1.45);
-
+    mimsyIMUInit();
     mpu_set_sensors(INV_XYZ_ACCEL|INV_XYZ_GYRO); //turn on sensor
     mpu_set_accel_fsr(16); //set fsr for accel
     mpu_set_gyro_fsr(GYRO_FSR); //set fsr for accel
@@ -87,15 +87,22 @@ void urocket_init(void) {
 
 void urocket_timer_cb(opentimers_id_t id){
 
+
    scheduler_push_task(urocket_control_cb,TASKPRIO_COAP);
+
 }
 
 //================================================================================
 ///control code that is run everytime the control task is pushed to the scheduler
 
 void urocket_control_cb(void){
-	mimsyLedToggle(GREEN_LED);
+	//i should put these in the global struct
 
+	short sensors=INV_XYZ_GYRO | INV_WXYZ_QUAT|INV_XYZ_ACCEL;
+	short more;
+	mimsyLedToggle(GREEN_LED);
+	dmp_read_fifo(&(urocket_vars.gyro), &(urocket_vars.accel), &(urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
 }
 
 //===================================================================

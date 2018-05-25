@@ -75,7 +75,7 @@ len=17  num=84  rssi=-81  lqi=108 crc=1
 //=========================== defines =========================================
 
 #define LENGTH_PACKET        8+LENGTH_CRC ///< maximum length is 127 bytes
-#define CHANNEL              14            ///< 11 = 2.405GHz
+#define CHANNEL              20            ///< 11 = 2.405GHz
 #define LENGTH_SERIAL_FRAME  8              ///< length of the serial frame
 
 //=========================== variables =======================================
@@ -177,7 +177,7 @@ int mote_main(void) {
 
 	  packet_valid = ((app_vars.rxpk_crc != 0) && (app_vars.rxpk_buf[4] == 0xAC) && (app_vars.rxpk_buf[5] == 0xAC)  && (app_vars.rxpk_buf[6] == 0xA5) && (app_vars.rxpk_buf[7] == 0xB1));
 	  if(packet_valid){
-
+/*
 		if((app_vars.rxpk_buf[0] == 3) || (app_vars.rxpk_buf[0] ==1)){
 			leds_sync_on();
 			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
@@ -192,8 +192,23 @@ int mote_main(void) {
 			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,GPIO_PIN_0);
 			  for(j=0;j<50000;j++){
 			}
+			*/
+
 		//set left output pin high
-		}
+	  if((app_vars.rxpk_buf[0] == 0xFF)){
+				leds_sync_on();
+				GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,GPIO_PIN_2);
+				GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,GPIO_PIN_0);
+				  for(j=0;j<50000;j++){
+				}
+	  }
+
+		if((app_vars.rxpk_buf[0] == 0xAA)){
+			leds_debug_on();
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_1,GPIO_PIN_1);
+			GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,GPIO_PIN_0);
+			  for(j=0;j<50000;j++){
+			}
 
 		}
 
@@ -202,6 +217,7 @@ int mote_main(void) {
 	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_2,0);
 	GPIOPinWrite(GPIO_D_BASE, GPIO_PIN_0,0);
       leds_error_off();
+   }
    }
 }
 

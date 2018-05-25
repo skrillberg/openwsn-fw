@@ -29,6 +29,7 @@ end of frame event), it will turn on its error LED.
 #include <headers/hw_rfcore_sfr.h>
 #include <headers/hw_rfcore_sfr.h>
 #include <headers/hw_rfcore_xreg.h>
+#include <source/ioc.h>
 
 //=========================== defines =========================================
 
@@ -114,14 +115,15 @@ void configure_pins(void){
    //setup A2 as left sensor input
 
       GPIOPinTypeGPIOInput(GPIO_A_BASE,GPIO_PIN_2);
+      IOCPadConfigSet(GPIO_A_BASE,GPIO_PIN_2,IOC_OVERRIDE_PUE);
 
-      GPIOIntTypeSet(GPIO_A_BASE,GPIO_PIN_2, GPIO_RISING_EDGE);
+      //GPIOIntTypeSet(GPIO_A_BASE,GPIO_PIN_2, GPIO_RISING_EDGE);
 
       GPIOPortIntRegister(GPIO_A_BASE, cb_button);
 
-      GPIOPinIntClear(GPIO_A_BASE,GPIO_PIN_2);
+      //GPIOPinIntClear(GPIO_A_BASE,GPIO_PIN_2);
 
-      GPIOPinIntEnable(GPIO_A_BASE,GPIO_PIN_2);
+      //GPIOPinIntEnable(GPIO_A_BASE,GPIO_PIN_2);
 
    //kill switch
 
@@ -356,6 +358,7 @@ uint32_t last_pin_state = 0;
    		   }
 		
 		//sent packet contains the left and right sensor states
+   		   /*
 		if(left_state && right_state){
 			app_vars.packet[0] = 3;
 		}else if(left_state && (!right_state)){
@@ -366,10 +369,14 @@ uint32_t last_pin_state = 0;
 		}else{
 
 			app_vars.packet[0] = 0;
-		}
+		}*/
 		//app_vars.packet[0] = (left_state<<1) |(right_state);
+		if(GPIOPinRead(GPIO_A_BASE,GPIO_PIN_2)==GPIO_PIN_2){
+			app_vars.packet[0] = 0xFF;
+		}else{
+			app_vars.packet[0] = 0xAA;
+		}
 		
-
 
                // start transmitting packet
 

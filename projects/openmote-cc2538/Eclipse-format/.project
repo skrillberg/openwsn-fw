@@ -130,4 +130,10 @@
 			<locationURI>PARENT-3-PROJECT_LOC/bsp/chips/sht21</locationURI>
 		</link>
 	</linkedResources>
+	<variableList>
+		<variable>
+			<name>Mimsy_bsp</name>
+			<value>file:/home/vagrant/openwsn-mimsy/openwsn-fw/bsp/boards/mimsy2-cc2538</value>
+		</variable>
+	</variableList>
 </projectDescription>

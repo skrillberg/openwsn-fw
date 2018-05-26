@@ -21,12 +21,15 @@ typedef struct {
    opentimers_id_t     timerId;  ///< periodic timer which triggers transmission
    uint16_t             counter;  ///< incrementing counter which is written into the packet
    uint16_t              period;  ///< uinject packet sending period>
-   IMUData 			logdata[100];  ///<array of datapoints stored in ram. Eventually saved into flash
+   IMUData 			logdata[50];  ///<array of datapoints stored in ram. Eventually saved into flash
    rocket_trajectory  trajectory;  ///desired rocket trajectory that is uploaded to rocket via UDP
    short 			gyro[3];
    short 			accel[3];
    long 			quat[4];
    unsigned long timestamp;
+   float 		servo_time_0;
+   float 		servo_time_1;
+   IMUDataCard 		cards_stable[1];
    udp_resource_desc_t     desc;  ///< resource descriptor for this module, used to register at UDP stack
 } urocket_vars_t;
 

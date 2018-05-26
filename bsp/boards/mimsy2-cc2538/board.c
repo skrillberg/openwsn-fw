@@ -75,7 +75,7 @@ void board_init(void) {
    clock_init();
    board_timer_init(); //changed for inchwrom code
    leds_init(); //changed for incworm code
-   debugpins_init(); //changed for inchworm code
+  // debugpins_init(); //changed for inchworm code
    //button_init();
    sctimer_init(); //changed for inchworm code
    //uart_init(); //changed for inchwrom code

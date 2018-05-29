@@ -17,10 +17,11 @@
 #include "ioc.h"
 #include "led_mimsy.h"
 #include "inchworm.h"
+#include "ml_math_func.h"
 #include <math.h>
 //========================== Defines ==========================================
 
-#define UROCKET_PERIOD_MS	100  //how often control task gets pushed to scheduler in ms
+#define UROCKET_PERIOD_MS	1000  //how often control task gets pushed to scheduler in ms
 #define GYRO_FSR			2000 //gyro full scale range in deg/s
 #define DATAPOINTS			100 //number of datapoints?
 #define FLASH_PAGES_TOUSE	50
@@ -79,9 +80,8 @@ void urocket_init(void) {
 	unsigned long timestamp2 =0;
 	unsigned char more =0;
 	short sensors=INV_XYZ_GYRO | INV_WXYZ_QUAT|INV_XYZ_ACCEL;
-
     IMUData datapoint;
-	dmp_read_fifo(gyro, accel, quat,&timestamp2, &sensors, &more);
+
 	mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",accel[0],accel[1],accel[2],gyro[0],gyro[1],gyro[2]);
 
 	// start periodic timer
@@ -110,21 +110,61 @@ void urocket_timer_cb(opentimers_id_t id){
 ///control code that is run everytime the control task is pushed to the scheduler
 
 void urocket_control_cb(void){
+
+	//**********************vars*******************************************
 	//i should put these in the global struct
+
 	IMUData datapoint;
 	short sensors=INV_XYZ_GYRO | INV_WXYZ_QUAT|INV_XYZ_ACCEL;
 	short more;
+	float pitch;
+	float fquats[4] = {0,0,0,0};
+	float yaw;
+	float roll;
+	float yaw_last;
+	float roll_last;
+	float pitch_last;
+	short gyro[3] = {0,0,0};
+	short accel[3] = {0,0,0};
+	int error;
+	//***********************read state information************************
 	//mimsyLedToggle(GREEN_LED);
 
 	//read fifo from dmp. I currently have two reads in a row
 	//because otherwise, every other read returns nothing
 
-	dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
-	dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
-	mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
+	//dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	error = dmp_read_fifo((gyro), (accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	if(error !=0){
+		mimsyPrintf("\n dmp fifo error");
+	}
+	//mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
+	//mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",accel[0],accel[1],accel[2],gyro[0],gyro[1],gyro[2]);
+	// mimsyPrintf("\n Sensors: %d",sensors);
+	//*********************euler angle conversion*****************************************************************
+   //pitch control
+   fquats[0]=(float)urocket_vars.quat[0]/(float)0x40000000;
+   fquats[1]=(float)urocket_vars.quat[1]/(float)0x40000000;
+   fquats[2]=(float)urocket_vars.quat[2]/(float)0x40000000;
+   fquats[3]=(float)urocket_vars.quat[3]/(float)0x40000000;
 
+   //mag = sqrtf( fquats[1] * fquats[1] + fquats[2] * fquats[2] + fquats[3] * fquats[3]);
+   inv_q_norm4(fquats);
+   pitch_last = pitch; //save previous state
+   pitch = asinf( 2*(fquats[0]*fquats[2]-fquats[3]*fquats[1])); //computes sin of pitch
+
+   //gyro yaw
+   yaw_last = yaw;
+   yaw = atan2f(2*(fquats[0] * fquats[3] + fquats[1] * fquats[2]),1 - 2*(fquats[2]*fquats[2] + fquats[3]*fquats[3]));
+
+   //roll control
+   roll_last = roll;
+   roll =  atan2f(2 * (fquats[0]*fquats[1] + fquats[2] * fquats[3]) ,(1 -2*(fquats[1] * fquats[1] +fquats[2]*fquats[2])));
+   //mimsyPrintf("\n Roll: %d. Pitch: %d, Yaw: %d",(int)(roll*100),(int)(pitch*100), (int)(yaw*100));
+
+	//*********************send data and save data********************************************************
 	create_datapoint(urocket_vars,&datapoint);	//convert dmp data into a flash-saveable format. this is inefficient at the moment
-
+	urocket_sendpacket(urocket_vars.accel,3,urocket_vars.gyro,3,urocket_vars.quat,4);
 
 
 }
@@ -177,11 +217,11 @@ void urocket_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
 }
 
 void urocket_sendpacket(short * accel,short accel_len, short * gyro,short gyro_len, long *quat,short quat_len){
-	static const uint8_t uinject_payload[]    = "uinject";
+	static const uint8_t uinject_payload[]    = "urocket";
 	static const uint8_t uinject_dst_addr[]   = {
 	   0xbb, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
-	};
+	}; //local host address of computer
 	OpenQueueEntry_t*    pkt;
 	uint8_t              asnArray[5];
 
@@ -222,7 +262,7 @@ void urocket_sendpacket(short * accel,short accel_len, short * gyro,short gyro_l
    pkt->payload[1] = (uint8_t)((urocket_vars.counter & 0xff00)>>8);
    pkt->payload[0] = (uint8_t)(urocket_vars.counter & 0x00ff);
    urocket_vars.counter++;
-
+/*
    packetfunctions_reserveHeaderSize(pkt,sizeof(asn_t));
    ieee154e_getAsn(asnArray);
    pkt->payload[0] = asnArray[0];
@@ -230,7 +270,7 @@ void urocket_sendpacket(short * accel,short accel_len, short * gyro,short gyro_l
    pkt->payload[2] = asnArray[2];
    pkt->payload[3] = asnArray[3];
    pkt->payload[4] = asnArray[4];
-
+*/
    if ((openudp_send(pkt))==E_FAIL) {
 	  openqueue_freePacketBuffer(pkt);
    }
@@ -286,4 +326,21 @@ void create_datapoint(urocket_vars_t urocket_var,IMUData* datapoint){
 	(*datapoint).fields.timestamp=(uint32_t)urocket_var.timestamp;
 	(*datapoint).fields.servo_state_0 = urocket_var.servo_time_0;
 	(*datapoint).fields.servo_state_1 = urocket_var.servo_time_1;
+}
+
+void alt_inv_q_norm4(float *q)
+{
+    float mag;
+    mag = sqrtf(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+    if (mag) {
+        q[0] /= mag;
+        q[1] /= mag;
+        q[2] /= mag;
+        q[3] /= mag;
+    } else {
+        q[0] = 1.f;
+        q[1] = 0.f;
+        q[2] = 0.f;
+        q[3] = 0.f;
+    }
 }

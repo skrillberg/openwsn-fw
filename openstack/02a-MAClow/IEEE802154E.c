@@ -115,7 +115,7 @@ void ieee154e_init(void) {
     memset(&ieee154e_dbg,0,sizeof(ieee154e_dbg_t));
     
     // set singleChannel to 0 to enable channel hopping.
-    ieee154e_vars.singleChannel     = 0;
+    ieee154e_vars.singleChannel     = 11;
     ieee154e_vars.isAckEnabled      = TRUE;
     ieee154e_vars.isSecurityEnabled = FALSE;
     ieee154e_vars.slotDuration      = TsSlotDuration;
@@ -540,8 +540,8 @@ port_INLINE void activity_synchronize_newSlot(void) {
         radio_rfOff();
         
         // update record of current channel
-        ieee154e_vars.freq = (openrandom_get16b()&0x0F) + 11;
-        
+        //ieee154e_vars.freq = (openrandom_get16b()&0x0F) + 11;
+        ieee154e_vars.freq =11; //changed to increase synch speed
         // configure the radio to listen to the default synchronizing channel
         radio_setFrequency(ieee154e_vars.freq);
         
@@ -1736,6 +1736,7 @@ port_INLINE void activity_ri5(PORT_TIMER_WIDTH capturedTime) {
 #endif
     // turn off the radio
     radio_rfOff();
+  openserial_printInfo(COMPONENT_IEEE802154E,ERROR_DEBUG,0,0);
     ieee154e_vars.radioOnTics+=sctimer_readCounter()-ieee154e_vars.radioOnInit;
     // get a buffer to put the (received) data in
     ieee154e_vars.dataReceived = openqueue_getFreePacketBuffer(COMPONENT_IEEE802154E);

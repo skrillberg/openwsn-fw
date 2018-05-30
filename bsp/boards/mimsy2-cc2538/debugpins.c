@@ -121,12 +121,12 @@ void bspDBpinToggle(uint32_t base, uint8_t ui8Pin)
     //
     // Get current pin values of selected bits
     //
-    uint32_t ui32Toggle = GPIOPinRead(base, ui8Pin);
+    //uint32_t ui32Toggle = GPIOPinRead(base, ui8Pin);
 
     //
     // Invert selected bits
     //
-    ui32Toggle = (~ui32Toggle) & ui8Pin;
+   // ui32Toggle = (~ui32Toggle) & ui8Pin;
 
     //
     // Set GPIO

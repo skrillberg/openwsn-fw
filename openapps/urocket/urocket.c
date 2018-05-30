@@ -21,7 +21,8 @@
 #include <math.h>
 //========================== Defines ==========================================
 
-#define UROCKET_PERIOD_MS	1000  //how often control task gets pushed to scheduler in ms
+#define UROCKET_PERIOD_MS	100  //how often control task gets pushed to scheduler in ms
+#define UROCKET_TX_PERIOD_MS 1000 //how often send packet task gets pushed to scheduler in ms
 #define GYRO_FSR			2000 //gyro full scale range in deg/s
 #define DATAPOINTS			100 //number of datapoints?
 #define FLASH_PAGES_TOUSE	50
@@ -31,8 +32,9 @@
 urocket_vars_t urocket_vars;
 
 //========================== Prototypes =======================================
-
+void urocket_sendpacket(void);
 void urocket_timer_cb(opentimers_id_t id);
+void urocket_send_timer_cb(opentimers_id_t id);
 void urocket_control_cb(void);
 void printFlash(IMUDataCard * cards_stable, int page_struct_capacity);
 void create_datapoint(urocket_vars_t urocket_var,IMUData* datapoint);
@@ -94,6 +96,15 @@ void urocket_init(void) {
 		TIMER_PERIODIC,
 		urocket_timer_cb
 	);
+
+	urocket_vars.timerIdSend = opentimers_create();
+	opentimers_scheduleIn(
+		urocket_vars.timerIdSend,
+		UROCKET_TX_PERIOD_MS,
+		TIME_MS,
+		TIMER_PERIODIC,
+		urocket_send_timer_cb
+	);
 }
 
 //================================================================================
@@ -102,7 +113,14 @@ void urocket_init(void) {
 void urocket_timer_cb(opentimers_id_t id){
 
 
-   scheduler_push_task(urocket_control_cb,TASKPRIO_COAP);
+   scheduler_push_task(urocket_control_cb,TASKPRIO_COAP+1);
+
+}
+
+void urocket_send_timer_cb(opentimers_id_t id){
+
+	scheduler_push_task(urocket_sendpacket,TASKPRIO_COAP);
+
 
 }
 
@@ -117,13 +135,8 @@ void urocket_control_cb(void){
 	IMUData datapoint;
 	short sensors=INV_XYZ_GYRO | INV_WXYZ_QUAT|INV_XYZ_ACCEL;
 	short more;
-	float pitch;
 	float fquats[4] = {0,0,0,0};
-	float yaw;
-	float roll;
-	float yaw_last;
-	float roll_last;
-	float pitch_last;
+
 	short gyro[3] = {0,0,0};
 	short accel[3] = {0,0,0};
 	int error;
@@ -133,8 +146,8 @@ void urocket_control_cb(void){
 	//read fifo from dmp. I currently have two reads in a row
 	//because otherwise, every other read returns nothing
 
-	//dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
-	error = dmp_read_fifo((gyro), (accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	error = dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	//error = dmp_read_fifo((gyro), (accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
 	if(error !=0){
 		mimsyPrintf("\n dmp fifo error");
 	}
@@ -150,21 +163,20 @@ void urocket_control_cb(void){
 
    //mag = sqrtf( fquats[1] * fquats[1] + fquats[2] * fquats[2] + fquats[3] * fquats[3]);
    inv_q_norm4(fquats);
-   pitch_last = pitch; //save previous state
-   pitch = asinf( 2*(fquats[0]*fquats[2]-fquats[3]*fquats[1])); //computes sin of pitch
+   urocket_vars.pitch_last = urocket_vars.pitch.flt; //save previous state
+   urocket_vars.pitch.flt = asinf( 2*(fquats[0]*fquats[2]-fquats[3]*fquats[1])); //computes sin of pitch
 
    //gyro yaw
-   yaw_last = yaw;
-   yaw = atan2f(2*(fquats[0] * fquats[3] + fquats[1] * fquats[2]),1 - 2*(fquats[2]*fquats[2] + fquats[3]*fquats[3]));
+   urocket_vars.yaw_last = urocket_vars.yaw.flt;
+   urocket_vars.yaw.flt = atan2f(2*(fquats[0] * fquats[3] + fquats[1] * fquats[2]),1 - 2*(fquats[2]*fquats[2] + fquats[3]*fquats[3]));
 
    //roll control
-   roll_last = roll;
-   roll =  atan2f(2 * (fquats[0]*fquats[1] + fquats[2] * fquats[3]) ,(1 -2*(fquats[1] * fquats[1] +fquats[2]*fquats[2])));
+   urocket_vars.roll_last = urocket_vars.roll.flt;
+   urocket_vars.roll.flt=  atan2f(2 * (fquats[0]*fquats[1] + fquats[2] * fquats[3]) ,(1 -2*(fquats[1] * fquats[1] +fquats[2]*fquats[2])));
    //mimsyPrintf("\n Roll: %d. Pitch: %d, Yaw: %d",(int)(roll*100),(int)(pitch*100), (int)(yaw*100));
 
 	//*********************send data and save data********************************************************
 	create_datapoint(urocket_vars,&datapoint);	//convert dmp data into a flash-saveable format. this is inefficient at the moment
-	urocket_sendpacket(urocket_vars.accel,3,urocket_vars.gyro,3,urocket_vars.quat,4);
 
 
 }
@@ -216,9 +228,9 @@ void urocket_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
    openqueue_freePacketBuffer(msg);
 }
 
-void urocket_sendpacket(short * accel,short accel_len, short * gyro,short gyro_len, long *quat,short quat_len){
-	static const uint8_t uinject_payload[]    = "urocket";
-	static const uint8_t uinject_dst_addr[]   = {
+void urocket_sendpacket(){
+	static const uint8_t urocket_payload[]    = "urocket";
+	static const uint8_t urocket_dst_addr[]   = {
 	   0xbb, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
 	}; //local host address of computer
@@ -252,25 +264,67 @@ void urocket_sendpacket(short * accel,short accel_len, short * gyro,short gyro_l
    pkt->l4_destination_port           = WKP_UDP_ROCKET;
    pkt->l4_sourcePortORicmpv6Type     = WKP_UDP_ROCKET;
    pkt->l3_destinationAdd.type        = ADDR_128B;
-   memcpy(&pkt->l3_destinationAdd.addr_128b[0],uinject_dst_addr,16);
+   memcpy(&pkt->l3_destinationAdd.addr_128b[0],urocket_dst_addr,16);
 
    // add payload
-   packetfunctions_reserveHeaderSize(pkt,sizeof(uinject_payload)-1);
-   memcpy(&pkt->payload[0],uinject_payload,sizeof(uinject_payload)-1);
+   packetfunctions_reserveHeaderSize(pkt,sizeof(urocket_payload)-1);
+   memcpy(&pkt->payload[0],urocket_payload,sizeof(urocket_payload)-1);
 
-   packetfunctions_reserveHeaderSize(pkt,sizeof(uint16_t));
-   pkt->payload[1] = (uint8_t)((urocket_vars.counter & 0xff00)>>8);
-   pkt->payload[0] = (uint8_t)(urocket_vars.counter & 0x00ff);
+   packetfunctions_reserveHeaderSize(pkt,6*sizeof(uint16_t)+3*sizeof(float));
+   //pkt->payload[1] = (uint8_t)((urocket_vars.counter & 0xff00)>>8);
+   //pkt->payload[0] = (uint8_t)(urocket_vars.counter & 0x00ff);
+   mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
+
+   pkt->payload[1] = (uint8_t)((urocket_vars.accel[0] & 0xff00)>>8);
+   pkt->payload[0] = (uint8_t)(urocket_vars.accel[0] & 0x00ff);
+
+   pkt->payload[3] = (uint8_t)((urocket_vars.accel[1] & 0xff00)>>8);
+   pkt->payload[2] = (uint8_t)(urocket_vars.accel[1] & 0x00ff);
+
+   pkt->payload[5] = (uint8_t)((urocket_vars.accel[2] & 0xff00)>>8);
+   pkt->payload[4] = (uint8_t)(urocket_vars.accel[2] & 0x00ff);
+
+   pkt->payload[7] = (uint8_t)((urocket_vars.gyro[0] & 0xff00)>>8);
+   pkt->payload[6] = (uint8_t)(urocket_vars.gyro[0] & 0x00ff);
+
+   pkt->payload[7] = (uint8_t)((urocket_vars.gyro[1] & 0xff00)>>8);
+   pkt->payload[6] = (uint8_t)(urocket_vars.gyro[1] & 0x00ff);
+
+   pkt->payload[9] = (uint8_t)((urocket_vars.gyro[2] & 0xff00)>>8);
+   pkt->payload[8] = (uint8_t)(urocket_vars.gyro[2] & 0x00ff);
+
+   //***************euler angels****************************
+   pkt->payload[13] = urocket_vars.roll.bytes[3];
+   pkt->payload[12] = urocket_vars.roll.bytes[2];
+   pkt->payload[11] = urocket_vars.roll.bytes[1];
+   pkt->payload[10] = urocket_vars.roll.bytes[0];
+
+   pkt->payload[17] = urocket_vars.pitch.bytes[3];
+   pkt->payload[16] = urocket_vars.pitch.bytes[2];
+   pkt->payload[15] = urocket_vars.pitch.bytes[1];
+   pkt->payload[14] = urocket_vars.pitch.bytes[0];
+
+   pkt->payload[21] = urocket_vars.yaw.bytes[3];
+   pkt->payload[20] = urocket_vars.yaw.bytes[2];
+   pkt->payload[19] = urocket_vars.yaw.bytes[1];
+   pkt->payload[18] = urocket_vars.yaw.bytes[0];
+
    urocket_vars.counter++;
-/*
-   packetfunctions_reserveHeaderSize(pkt,sizeof(asn_t));
-   ieee154e_getAsn(asnArray);
-   pkt->payload[0] = asnArray[0];
-   pkt->payload[1] = asnArray[1];
-   pkt->payload[2] = asnArray[2];
-   pkt->payload[3] = asnArray[3];
-   pkt->payload[4] = asnArray[4];
-*/
+
+  // packetfunctions_reserveHeaderSize(pkt,6*2);
+  // ieee154e_getAsn(asnArray);
+
+ //  pkt->payload[1] = (uint8_t)((urocket_vars.accel[0] & 0xff00)>>8);
+ //  pkt->payload[0] = (uint8_t)(urocket_vars.accel[0] & 0x00ff);
+
+   //pkt->payload[0] = urocket_vars.accel[0];
+  // pkt->payload[1] = urocket_vars.accel[1];
+   //pkt->payload[2] = urocket_vars.accel[2];
+  // pkt->payload[3] = urocket_vars.gyro[0];
+  // pkt->payload[4] = urocket_vars.gyro[1];
+  // pkt->payload[5] = urocket_vars.gyro[2];
+
+
    if ((openudp_send(pkt))==E_FAIL) {
 	  openqueue_freePacketBuffer(pkt);
    }

@@ -1,16 +1,6 @@
 from socket import *
- 
-##UDP_IP = "127.0.0.1"
-##UDP_PORT = 2010
-##MESSAGE = "Hello, World!"
-## 
-##print "UDP target IP:", UDP_IP
-##print "UDP target port:", UDP_PORT
-##print "message:", MESSAGE
-##sock = socket.socket(socket.AF_INET, # Internet
-##                        socket.SOCK_DGRAM) # UDP
-##sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
-#sock.bind(('', UDP_PORT))
+import struct 
+import binascii 
 
 
 ipv6_address = "bbbb::1"
@@ -25,7 +15,13 @@ while True:
 
     # Receive the client packet along with the address it is coming from
     message, address = serverSocket.recvfrom(1024)
-    print message
-##while True:
-##    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-##    print "received message:", data
+    accel0  = struct.unpack('<h',message[0:2])  #this may need to be [0:1]
+    accel1  = struct.unpack('<h',message[2:4])  #this may need to be [0:1]
+    accel2  = struct.unpack('<h',message[4:6])  #this may need to be [0:1]
+    roll = struct.unpack('<f',message[10:14])
+    pitch = struct.unpack('<f',message[14:18])
+    yaw = struct.unpack('<f',message[18:22])
+
+    #print ""
+    #print 'accel 0: "{0}", accel 1: "{1}", accel 2: "{2}" '.format(accel0,accel1,accel2)
+    print 'roll: "{0}", pitch: "{1}", yaw: "{2}" '.format(roll,pitch,yaw)

@@ -18,7 +18,8 @@ typedef struct{
 } rocket_trajectory;
 
 typedef struct {
-   opentimers_id_t     timerId;  ///< periodic timer which triggers transmission
+   opentimers_id_t     timerId;  ///< periodic timer which triggers control
+   opentimers_id_t     timerIdSend;  ///< periodic timer which triggers transmission
    uint16_t             counter;  ///< incrementing counter which is written into the packet
    uint16_t              period;  ///< uinject packet sending period>
    IMUData 			logdata[50];  ///<array of datapoints stored in ram. Eventually saved into flash
@@ -29,6 +30,25 @@ typedef struct {
    unsigned long timestamp;
    float 		servo_time_0;
    float 		servo_time_1;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } roll;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } pitch;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } yaw;
+
+   float yaw_last;
+   float roll_last;
+   float pitch_last;
    IMUDataCard 		cards_stable[1];
    udp_resource_desc_t     desc;  ///< resource descriptor for this module, used to register at UDP stack
 } urocket_vars_t;

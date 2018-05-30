@@ -7,6 +7,8 @@
 //=========================== define ==========================================
 
 #define BUFFER_SIZE		50
+#define SERVO_MIN		1.1
+#define SERVO_MAX		1.77
 
 //=========================== typedef =========================================
 enum{
@@ -42,8 +44,19 @@ typedef struct {
    short 			accel[3];
    long 			quat[4];
    unsigned long timestamp;
-   float 		servo_time_0;
-   float 		servo_time_1;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   }servo_time_0;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   }servo_time_1;
+
+   int			launched;
+   int			armed;
 
    union {
      float flt;

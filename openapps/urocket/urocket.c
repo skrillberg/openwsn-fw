@@ -58,6 +58,9 @@ void urocket_init(void) {
 	//mimsyLedInit();
 	//mimsyLedSet(GREEN_LED);
 	urocket_vars.rocket_state = DISARMED;
+	urocket_vars.rocket_mode = INITIAL_STATE;
+	urocket_vars.launched = 0;
+	urocket_vars.armed = 0;
 	//initialize trajectory
 	urocket_vars.trajectory.roll[1]=3;
 	urocket_vars.trajectory.sample_time = 1000; //1 second sample period for trajectory
@@ -187,7 +190,7 @@ void urocket_control_cb(void){
 	   urocket_vars.roll_ref=urocket_vars.rc_roll.flt;
 	   urocket_vars.yaw_ref = urocket_vars.rc_yaw.flt;
 	   urocket_vars.pitch_ref = urocket_vars.rc_pitch.flt;
-	   mimsyPrintf("RC Command Received");
+	   //mimsyPrintf("RC Command Received");
    }
    else if((urocket_vars.rocket_mode==TRAJ_PROGRAM) && (urocket_vars.rocket_state == DISARMED)){
 
@@ -208,16 +211,35 @@ void urocket_receive(OpenQueueEntry_t* request) {
    if((request->payload[0]==RC_BYPASS) && (urocket_vars.rocket_state==DISARMED)){
 	   urocket_vars.rocket_mode=RC_BYPASS;
 	   urocket_vars.rocket_state=INFLIGHT;
-   }
+	   mimsyPrintf("state changed to inflight and rc_bypass");
 
-   if((urocket_vars.rocket_mode==RC_BYPASS) && (urocket_vars.rocket_state==INFLIGHT)){
-	   urocket_vars.rc_roll.bytes[0] =  request->payload[0];
-	   urocket_vars.rc_roll.bytes[1] =  request->payload[1];
-	   urocket_vars.rc_roll.bytes[2] =  request->payload[2];
-	   urocket_vars.rc_roll.bytes[3] =  request->payload[3];
-	   mimsyPrintf("roll updated");
-   }
+   }else if((urocket_vars.rocket_mode==RC_BYPASS) && (urocket_vars.rocket_state==INFLIGHT)){
+	   switch( (char)(request->payload[0])){
+	   case 'l':
+		   urocket_vars.servo_time_0.flt = SERVO_MIN;
+		   urocket_vars.servo_time_1.flt = SERVO_MAX;
+		   break;
+	   case 'r':
+		   urocket_vars.servo_time_0.flt = SERVO_MAX;
+		   urocket_vars.servo_time_1.flt = SERVO_MIN;
+		   break;
+	   case 'm':
+		   urocket_vars.servo_time_0.flt = (SERVO_MIN+SERVO_MAX)/2;
+		   urocket_vars.servo_time_1.flt = (SERVO_MIN+SERVO_MAX)/2;
+		   break;
+	   default:
+		   mimsyPrintf('bad rx for state');
+	   }
 
+	   /*
+	    if((urocket_vars.rocket_mode==RC_BYPASS) && (urocket_vars.rocket_state==INFLIGHT)){
+	 	   urocket_vars.rc_roll.bytes[0] =  request->payload[0];
+	 	   urocket_vars.rc_roll.bytes[1] =  request->payload[1];
+	 	   urocket_vars.rc_roll.bytes[2] =  request->payload[2];
+	 	   urocket_vars.rc_roll.bytes[3] =  request->payload[3];
+	 	   mimsyPrintf("roll updated");
+	    }*/
+   }
 
    if (reply==NULL) {
       openserial_printError(
@@ -301,7 +323,7 @@ void urocket_sendpacket(){
    packetfunctions_reserveHeaderSize(pkt,sizeof(urocket_payload)-1);
    memcpy(&pkt->payload[0],urocket_payload,sizeof(urocket_payload)-1);
 
-   packetfunctions_reserveHeaderSize(pkt,6*sizeof(uint16_t)+3*sizeof(float));
+   packetfunctions_reserveHeaderSize(pkt,6*sizeof(uint16_t)+5*sizeof(float));
    //pkt->payload[1] = (uint8_t)((urocket_vars.counter & 0xff00)>>8);
    //pkt->payload[0] = (uint8_t)(urocket_vars.counter & 0x00ff);
    //mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
@@ -340,7 +362,17 @@ void urocket_sendpacket(){
    pkt->payload[19] = urocket_vars.yaw.bytes[1];
    pkt->payload[18] = urocket_vars.yaw.bytes[0];
 
-   urocket_vars.counter++;
+//SERVO STATES
+   pkt->payload[25] = urocket_vars.servo_time_0.bytes[3];
+   pkt->payload[24] = urocket_vars.servo_time_0.bytes[2];
+   pkt->payload[23] = urocket_vars.servo_time_0.bytes[1];
+   pkt->payload[22] = urocket_vars.servo_time_0.bytes[0];
+
+   pkt->payload[29] = urocket_vars.servo_time_1.bytes[3];
+   pkt->payload[28] = urocket_vars.servo_time_1.bytes[2];
+   pkt->payload[27] = urocket_vars.servo_time_1.bytes[1];
+   pkt->payload[26] = urocket_vars.servo_time_1.bytes[0];
+
 
   // packetfunctions_reserveHeaderSize(pkt,6*2);
   // ieee154e_getAsn(asnArray);
@@ -409,8 +441,8 @@ void create_datapoint(urocket_vars_t urocket_var,IMUData* datapoint){
 	(*datapoint).signedfields.gyroY = urocket_var.gyro[1];
 	(*datapoint).signedfields.gyroZ = urocket_var.gyro[2];
 	(*datapoint).fields.timestamp=(uint32_t)urocket_var.timestamp;
-	(*datapoint).fields.servo_state_0 = urocket_var.servo_time_0;
-	(*datapoint).fields.servo_state_1 = urocket_var.servo_time_1;
+	(*datapoint).fields.servo_state_0 = urocket_var.servo_time_0.flt;
+	(*datapoint).fields.servo_state_1 = urocket_var.servo_time_1.flt;
 }
 
 void alt_inv_q_norm4(float *q)

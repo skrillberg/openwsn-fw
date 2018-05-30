@@ -6,8 +6,21 @@
 #include "flash_mimsy.h"
 //=========================== define ==========================================
 
-//=========================== typedef =========================================
+#define BUFFER_SIZE		50
 
+//=========================== typedef =========================================
+enum{
+	INITIAL_STATE	=-1,
+	RC_BYPASS		=0,
+	TRAJ_PROGRAM	=1,
+
+};
+enum{
+	DISARMED = 0,
+	TRIGGERED = 1,
+	INFLIGHT = 2,
+	POSTLAUNCH = 3,
+};
 //=========================== variables =======================================
 typedef struct{
 	float roll[50];   ///desired roll angles for each sample period
@@ -22,7 +35,8 @@ typedef struct {
    opentimers_id_t     timerIdSend;  ///< periodic timer which triggers transmission
    uint16_t             counter;  ///< incrementing counter which is written into the packet
    uint16_t              period;  ///< uinject packet sending period>
-   IMUData 			logdata[50];  ///<array of datapoints stored in ram. Eventually saved into flash
+   IMUData 			logdata[BUFFER_SIZE];  ///<array of datapoints stored in ram. Eventually saved into flash
+   int				buff_length;
    rocket_trajectory  trajectory;  ///desired rocket trajectory that is uploaded to rocket via UDP
    short 			gyro[3];
    short 			accel[3];
@@ -45,10 +59,29 @@ typedef struct {
      float flt;
      unsigned char bytes[4];
    } yaw;
-
+   int	rocket_mode;
    float yaw_last;
    float roll_last;
    float pitch_last;
+   float yaw_ref;
+   float roll_ref;
+   float pitch_ref;
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } rc_yaw;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } rc_pitch;
+
+   union {
+     float flt;
+     unsigned char bytes[4];
+   } rc_roll;
+
+   int rocket_state;
    IMUDataCard 		cards_stable[1];
    udp_resource_desc_t     desc;  ///< resource descriptor for this module, used to register at UDP stack
 } urocket_vars_t;

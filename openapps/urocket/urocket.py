@@ -24,4 +24,4 @@ while True:
 
     #print ""
     #print 'accel 0: "{0}", accel 1: "{1}", accel 2: "{2}" '.format(accel0,accel1,accel2)
-    print 'roll: "{0}", pitch: "{1}", yaw: "{2}" '.format(roll,pitch,yaw)
+    print 'roll: {:=6.4f}, pitch: {:6=.4f}, yaw: {:6=.4f} '.format(roll[0],pitch[0],yaw[0])

@@ -21,8 +21,8 @@
 #include <math.h>
 //========================== Defines ==========================================
 
-#define UROCKET_PERIOD_MS	100  //how often control task gets pushed to scheduler in ms
-#define UROCKET_TX_PERIOD_MS 1000 //how often send packet task gets pushed to scheduler in ms
+#define UROCKET_PERIOD_MS	50 //how often control task gets pushed to scheduler in ms
+#define UROCKET_TX_PERIOD_MS 200 //how often send packet task gets pushed to scheduler in ms
 #define GYRO_FSR			2000 //gyro full scale range in deg/s
 #define DATAPOINTS			100 //number of datapoints?
 #define FLASH_PAGES_TOUSE	50
@@ -45,18 +45,19 @@ void urocket_init(void) {
     // clear local variables
     memset(&urocket_vars,0,sizeof(urocket_vars_t));
 
+    urocket_vars.rocket_mode = INITIAL_STATE;
     // register at UDP stack
     urocket_vars.desc.port              = WKP_UDP_ROCKET;
     urocket_vars.desc.callbackReceive   = &urocket_receive;
     urocket_vars.desc.callbackSendDone  = &urocket_sendDone;
     openudp_register(&urocket_vars.desc);
-
+    urocket_vars.buff_length=BUFFER_SIZE;
     //initialize uart and imu/dmp
 	uartMimsyInit();
 	mimsyPrintf("\nClock Speed: %d",SysCtrlClockGet());
 	//mimsyLedInit();
 	//mimsyLedSet(GREEN_LED);
-
+	urocket_vars.rocket_state = DISARMED;
 	//initialize trajectory
 	urocket_vars.trajectory.roll[1]=3;
 	urocket_vars.trajectory.sample_time = 1000; //1 second sample period for trajectory
@@ -146,10 +147,11 @@ void urocket_control_cb(void){
 	//read fifo from dmp. I currently have two reads in a row
 	//because otherwise, every other read returns nothing
 
-	error = dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
+	//error = dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
 	//error = dmp_read_fifo((gyro), (accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more);
-	if(error !=0){
-		mimsyPrintf("\n dmp fifo error");
+
+	while(dmp_read_fifo((urocket_vars.gyro), (urocket_vars.accel), (urocket_vars.quat),&(urocket_vars.timestamp), &sensors, &more)!=0){
+		//mimsyPrintf("\n dmp fifo error");
 	}
 	//mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
 	//mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",accel[0],accel[1],accel[2],gyro[0],gyro[1],gyro[2]);
@@ -176,8 +178,20 @@ void urocket_control_cb(void){
    //mimsyPrintf("\n Roll: %d. Pitch: %d, Yaw: %d",(int)(roll*100),(int)(pitch*100), (int)(yaw*100));
 
 	//*********************send data and save data********************************************************
-	create_datapoint(urocket_vars,&datapoint);	//convert dmp data into a flash-saveable format. this is inefficient at the moment
 
+   create_datapoint(urocket_vars,&datapoint);	//convert dmp data into a flash-saveable format. this is inefficient at the moment
+
+   //state transistion from disarmed to rc_bypass if rc command is received
+   if((urocket_vars.rocket_mode==RC_BYPASS) && (urocket_vars.rocket_state == INFLIGHT)){
+
+	   urocket_vars.roll_ref=urocket_vars.rc_roll.flt;
+	   urocket_vars.yaw_ref = urocket_vars.rc_yaw.flt;
+	   urocket_vars.pitch_ref = urocket_vars.rc_pitch.flt;
+	   mimsyPrintf("RC Command Received");
+   }
+   else if((urocket_vars.rocket_mode==TRAJ_PROGRAM) && (urocket_vars.rocket_state == DISARMED)){
+
+   }
 
 }
 
@@ -188,6 +202,23 @@ void urocket_receive(OpenQueueEntry_t* request) {
    OpenQueueEntry_t* reply;
 
    reply = openqueue_getFreePacketBuffer(COMPONENT_UROCKET);
+   mimsyPrintf("\n mode: %d, command", request->payload[0], request->payload[1]);
+
+   //rc bypass mode state
+   if((request->payload[0]==RC_BYPASS) && (urocket_vars.rocket_state==DISARMED)){
+	   urocket_vars.rocket_mode=RC_BYPASS;
+	   urocket_vars.rocket_state=INFLIGHT;
+   }
+
+   if((urocket_vars.rocket_mode==RC_BYPASS) && (urocket_vars.rocket_state==INFLIGHT)){
+	   urocket_vars.rc_roll.bytes[0] =  request->payload[0];
+	   urocket_vars.rc_roll.bytes[1] =  request->payload[1];
+	   urocket_vars.rc_roll.bytes[2] =  request->payload[2];
+	   urocket_vars.rc_roll.bytes[3] =  request->payload[3];
+	   mimsyPrintf("roll updated");
+   }
+
+
    if (reply==NULL) {
       openserial_printError(
          COMPONENT_UROCKET,
@@ -273,7 +304,7 @@ void urocket_sendpacket(){
    packetfunctions_reserveHeaderSize(pkt,6*sizeof(uint16_t)+3*sizeof(float));
    //pkt->payload[1] = (uint8_t)((urocket_vars.counter & 0xff00)>>8);
    //pkt->payload[0] = (uint8_t)(urocket_vars.counter & 0x00ff);
-   mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
+   //mimsyPrintf("\n Clearing Fifo:%d,%d,%d,%d,%d,%d",urocket_vars.accel[0],urocket_vars.accel[1],urocket_vars.accel[2],urocket_vars.gyro[0],urocket_vars.gyro[1],urocket_vars.gyro[2]);
 
    pkt->payload[1] = (uint8_t)((urocket_vars.accel[0] & 0xff00)>>8);
    pkt->payload[0] = (uint8_t)(urocket_vars.accel[0] & 0x00ff);

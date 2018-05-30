@@ -18,11 +18,11 @@ def key_cb(e):
 		serverSocket.sendto(struct.pack('<c','m'),('bbbb:0:0:0:12:4b00:14d1:dc81', 2010))
 	if e.name == '0':
 		mode_message = struct.pack('<b',0)
-		serverSocket.sendto(mode_message,('bbbb:0:0:0:12:4b00:14d1:dc81'
+		serverSocket.sendto(mode_message,('bbbb:0:0:0:12:4b00:14d1:dc81', 2010))
 	if e.name =='g':
 		print "begin logging"
 		serverSocket.sendto(struct.pack('<c','g'),('bbbb:0:0:0:12:4b00:14d1:dc81', 2010))
-, 2010))
+
 
 ipv6_address = "bbbb::1"
 # Create a UDP socket

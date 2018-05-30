@@ -66,6 +66,8 @@ void urocket_init(void) {
 	urocket_vars.trajectory.sample_time = 1000; //1 second sample period for trajectory
 
     servo_init(3,20,1.45);
+    urocket_vars.servo_time_0.flt=1.45;
+    urocket_vars.servo_time_1.flt=1.45;
 
     //create index cards for flash storage
   //  for(int i=0;i<FLASH_PAGES_TOUSE;i++){
@@ -179,6 +181,10 @@ void urocket_control_cb(void){
    urocket_vars.roll_last = urocket_vars.roll.flt;
    urocket_vars.roll.flt=  atan2f(2 * (fquats[0]*fquats[1] + fquats[2] * fquats[3]) ,(1 -2*(fquats[1] * fquats[1] +fquats[2]*fquats[2])));
    //mimsyPrintf("\n Roll: %d. Pitch: %d, Yaw: %d",(int)(roll*100),(int)(pitch*100), (int)(yaw*100));
+
+   //**********************control servo or finchworm********************************************************
+   servo_rotate_time(urocket_vars.servo_time_0.flt,0);
+   servo_rotate_time(urocket_vars.servo_time_1.flt,1);
 
 	//*********************send data and save data********************************************************
 

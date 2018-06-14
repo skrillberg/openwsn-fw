@@ -22,7 +22,7 @@
 //========================== Defines ==========================================
 
 #define UROCKET_PERIOD_MS	50 //how often control task gets pushed to scheduler in ms
-#define UROCKET_TX_PERIOD_MS 200 //how often send packet task gets pushed to scheduler in ms
+#define UROCKET_TX_PERIOD_MS 400 //how often send packet task gets pushed to scheduler in ms
 #define GYRO_FSR			2000 //gyro full scale range in deg/s
 #define DATAPOINTS			100 //number of datapoints?
 #define FLASH_PAGES_TOUSE	50
@@ -208,10 +208,10 @@ void urocket_control_cb(void){
 
 void urocket_receive(OpenQueueEntry_t* request) {
    uint16_t          temp_l4_destination_port;
-   OpenQueueEntry_t* reply;
+  // OpenQueueEntry_t* reply;
 
-   reply = openqueue_getFreePacketBuffer(COMPONENT_UROCKET);
-   mimsyPrintf("\n mode: %d, command", request->payload[0], request->payload[1]);
+  // reply = openqueue_getFreePacketBuffer(COMPONENT_UROCKET);
+  // mimsyPrintf("\n mode: %d, command", request->payload[0], request->payload[1]);
 
    //rc bypass mode state
    if((request->payload[0]==RC_BYPASS) && (urocket_vars.rocket_state==DISARMED)){
@@ -223,18 +223,18 @@ void urocket_receive(OpenQueueEntry_t* request) {
 	   switch( (char)(request->payload[0])){
 	   case 'l':
 		   urocket_vars.servo_time_0.flt = SERVO_MIN;
-		   urocket_vars.servo_time_1.flt = SERVO_MAX;
+		   urocket_vars.servo_time_1.flt = SERVO_MIN;
 		   break;
 	   case 'r':
 		   urocket_vars.servo_time_0.flt = SERVO_MAX;
-		   urocket_vars.servo_time_1.flt = SERVO_MIN;
+		   urocket_vars.servo_time_1.flt = SERVO_MAX;
 		   break;
 	   case 'm':
 		   urocket_vars.servo_time_0.flt = (SERVO_MIN+SERVO_MAX)/2;
 		   urocket_vars.servo_time_1.flt = (SERVO_MIN+SERVO_MAX)/2;
 		   break;
-	   default:
-		   mimsyPrintf('bad rx for state');
+	   //default:
+		   //mimsyPrintf('bad rx for state');
 	   }
 
 	   /*
@@ -246,7 +246,7 @@ void urocket_receive(OpenQueueEntry_t* request) {
 	 	   mimsyPrintf("roll updated");
 	    }*/
    }
-
+   /*
    if (reply==NULL) {
       openserial_printError(
          COMPONENT_UROCKET,
@@ -256,8 +256,8 @@ void urocket_receive(OpenQueueEntry_t* request) {
       );
       openqueue_freePacketBuffer(request); //clear the request packet as well
       return;
-   }
-
+   }*/
+   /*
    reply->owner                         = COMPONENT_UROCKET;
 
    // reply with the same OpenQueueEntry_t
@@ -278,7 +278,7 @@ void urocket_receive(OpenQueueEntry_t* request) {
    if ((openudp_send(reply))==E_FAIL) {
       openqueue_freePacketBuffer(reply);
    }
-
+	*/
 }
 
 //======================================================================
@@ -346,40 +346,44 @@ void urocket_sendpacket(){
    pkt->payload[7] = (uint8_t)((urocket_vars.gyro[0] & 0xff00)>>8);
    pkt->payload[6] = (uint8_t)(urocket_vars.gyro[0] & 0x00ff);
 
-   pkt->payload[7] = (uint8_t)((urocket_vars.gyro[1] & 0xff00)>>8);
-   pkt->payload[6] = (uint8_t)(urocket_vars.gyro[1] & 0x00ff);
+   pkt->payload[9] = (uint8_t)((urocket_vars.gyro[1] & 0xff00)>>8);
+   pkt->payload[8] = (uint8_t)(urocket_vars.gyro[1] & 0x00ff);
 
-   pkt->payload[9] = (uint8_t)((urocket_vars.gyro[2] & 0xff00)>>8);
-   pkt->payload[8] = (uint8_t)(urocket_vars.gyro[2] & 0x00ff);
+   pkt->payload[11] = (uint8_t)((urocket_vars.gyro[2] & 0xff00)>>8);
+   pkt->payload[10] = (uint8_t)(urocket_vars.gyro[2] & 0x00ff);
 
    //***************euler angels****************************
-   pkt->payload[13] = urocket_vars.roll.bytes[3];
-   pkt->payload[12] = urocket_vars.roll.bytes[2];
-   pkt->payload[11] = urocket_vars.roll.bytes[1];
-   pkt->payload[10] = urocket_vars.roll.bytes[0];
+   pkt->payload[15] = urocket_vars.roll.bytes[3];
+   pkt->payload[14] = urocket_vars.roll.bytes[2];
+   pkt->payload[13] = urocket_vars.roll.bytes[1];
+   pkt->payload[12] = urocket_vars.roll.bytes[0];
 
-   pkt->payload[17] = urocket_vars.pitch.bytes[3];
-   pkt->payload[16] = urocket_vars.pitch.bytes[2];
-   pkt->payload[15] = urocket_vars.pitch.bytes[1];
-   pkt->payload[14] = urocket_vars.pitch.bytes[0];
+   pkt->payload[19] = urocket_vars.pitch.bytes[3];
+   pkt->payload[18] = urocket_vars.pitch.bytes[2];
+   pkt->payload[17] = urocket_vars.pitch.bytes[1];
+   pkt->payload[16] = urocket_vars.pitch.bytes[0];
 
-   pkt->payload[21] = urocket_vars.yaw.bytes[3];
-   pkt->payload[20] = urocket_vars.yaw.bytes[2];
-   pkt->payload[19] = urocket_vars.yaw.bytes[1];
-   pkt->payload[18] = urocket_vars.yaw.bytes[0];
+   pkt->payload[23] = urocket_vars.yaw.bytes[3];
+   pkt->payload[22] = urocket_vars.yaw.bytes[2];
+   pkt->payload[21] = urocket_vars.yaw.bytes[1];
+   pkt->payload[20] = urocket_vars.yaw.bytes[0];
 
 //SERVO STATES
-   pkt->payload[25] = urocket_vars.servo_time_0.bytes[3];
-   pkt->payload[24] = urocket_vars.servo_time_0.bytes[2];
-   pkt->payload[23] = urocket_vars.servo_time_0.bytes[1];
-   pkt->payload[22] = urocket_vars.servo_time_0.bytes[0];
+   pkt->payload[27] = urocket_vars.servo_time_0.bytes[3];
+   pkt->payload[26] = urocket_vars.servo_time_0.bytes[2];
+   pkt->payload[25] = urocket_vars.servo_time_0.bytes[1];
+   pkt->payload[24] = urocket_vars.servo_time_0.bytes[0];
 
-   pkt->payload[29] = urocket_vars.servo_time_1.bytes[3];
-   pkt->payload[28] = urocket_vars.servo_time_1.bytes[2];
-   pkt->payload[27] = urocket_vars.servo_time_1.bytes[1];
-   pkt->payload[26] = urocket_vars.servo_time_1.bytes[0];
-
-
+   pkt->payload[31] = urocket_vars.servo_time_1.bytes[3];
+   pkt->payload[30] = urocket_vars.servo_time_1.bytes[2];
+   pkt->payload[29] = urocket_vars.servo_time_1.bytes[1];
+   pkt->payload[28] = urocket_vars.servo_time_1.bytes[0];
+//timestamps
+   /*
+   pkt->payload[33] = (uint8_t)((urocket_vars.timestamp & 0xff000000)>>24);
+   pkt->payload[32] = (uint8_t)((urocket_vars.timestamp & 0x00ff0000)>>16);
+   pkt->payload[31] = (uint8_t)((urocket_vars.timestamp & 0x0000ff00)>>8);
+   pkt->payload[30] = (uint8_t)(urocket_vars.timestamp & 0x00ff);*/
   // packetfunctions_reserveHeaderSize(pkt,6*2);
   // ieee154e_getAsn(asnArray);
 

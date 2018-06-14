@@ -32,6 +32,11 @@ typedef struct{
 	float sample_time;///sample period between each trajectory point
 } rocket_trajectory;
 
+typedef union{
+    float flt;
+    unsigned char bytes[4];
+}ser_float_t;
+
 typedef struct {
    opentimers_id_t     timerId;  ///< periodic timer which triggers control
    opentimers_id_t     timerIdSend;  ///< periodic timer which triggers transmission
@@ -44,7 +49,6 @@ typedef struct {
    short 			accel[3];
    long 			quat[4];
    unsigned long timestamp;
-
    union {
      float flt;
      unsigned char bytes[4];

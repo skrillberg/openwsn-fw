@@ -11,7 +11,7 @@
 #include "openrandom.h"
 #include "board.h"
 #include "idmanager.h"
-
+#include "uart_obj.h"
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
@@ -117,7 +117,7 @@ owerror_t cinfo_receive(
          
          // set the CoAP header
          coap_header->Code                = COAP_CODE_RESP_CONTENT;
-         
+         uart_writeByte(0x34);
          outcome                          = E_SUCCESS;
          break;
       default:

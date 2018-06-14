@@ -132,7 +132,7 @@ void uart_clearTxInterrupts(OpenMote* self) {
 
 #ifdef FASTSIM
 void uart_writeByte(OpenMote* self, uint8_t byteToWrite) {
-   printf("[CRITICAL] uart_writeByte() should not be called\r\n");
+   printf("[CRITICAL] byte written: %x should not be called\r\n",byteToWrite);
 }
 #else
 void uart_writeByte(OpenMote* self, uint8_t byteToWrite) {

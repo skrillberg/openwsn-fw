@@ -39,19 +39,19 @@ struct platform_data_s {
 
 //orientation for upright rocket
 
-static struct platform_data_s gyro_pdata = {
+/*static struct platform_data_s gyro_pdata = {
     .orientation = { 0, 0, -1,
                      -1, 0, 0,
                      0, 1, 0}
-};
+};*/
 
 
 //orientation for flat rocket
-/*static struct platform_data_s gyro_pdata = {
+static struct platform_data_s gyro_pdata = {
     .orientation = { 1, 0, 0,
                      0, -1, 0,
                      0, 0, -1}
-};*/
+};
 
 
 struct rx_s {

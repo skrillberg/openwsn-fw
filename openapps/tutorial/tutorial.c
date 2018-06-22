@@ -54,7 +54,7 @@ void tutorial_init(void) {
         TIMER_PERIODIC,
         tutorial_timer_cb
     );
-
+    //uartMimsyInit();
     // initialize imu on mimsy
     mimsyIMUInit();
     mpu_set_sensors(INV_XYZ_ACCEL|INV_XYZ_GYRO); //turn on sensor
@@ -71,17 +71,12 @@ void tutorial_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
 
 void tutorial_receive(OpenQueueEntry_t* pkt) {
    //if we recieve an 'i', we intiate 10 packets to be sent by timer
-   if(pkt->payload[0]=='i' ){
+  // if(pkt->payload[0]=='i' ){
 	tutorial_vars.send_count = 10;
-   }
+scheduler_push_task(tutorial_task_cb,TASKPRIO_COAP);
+  // }
    openqueue_freePacketBuffer(pkt);
    
-   openserial_printError(
-      COMPONENT_tutorial,
-      ERR_RCVD_ECHO_REPLY,
-      (errorparameter_t)0,
-      (errorparameter_t)0
-   );
 }
 
 //=========================== private =========================================

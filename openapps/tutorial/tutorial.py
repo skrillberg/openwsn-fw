@@ -24,9 +24,10 @@ serverSocket = socket(AF_INET6, SOCK_DGRAM)
 # Assign IP address and port number to socket
 serverSocket.bind((ipv6_address, 2018))
 
+serverSocket.sendto(struct.pack('<c','i'),('bbbb:0:0:0:12:4b00:14d1:db71', 2018))
 #assign keyboard press callback function
-keyboard.on_press(key_cb,suppress = True)
-
+keyboard.on_press(key_cb)
+serverSocket.sendto(struct.pack('<c','i'),('bbbb:0:0:0:12:4b00:14d1:db71', 2018))
 while True:
 	try:
 		message, address = serverSocket.recvfrom(1024)

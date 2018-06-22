@@ -118,6 +118,13 @@ owerror_t cinfo_receive(
          // set the CoAP header
          coap_header->Code                = COAP_CODE_RESP_CONTENT;
          uart_writeByte(0x34);
+	 uint8_t bytes[2];
+	 bytes[0] = 0x34;
+	 bytes[1] = 0x45;
+	 uart_writeBufferByLen_FASTSIM(bytes,2);
+	 bytes[0] = uart_readByte();
+	 printf("hi");
+	 printf("bytes: %x",bytes[0]);
          outcome                          = E_SUCCESS;
          break;
       default:

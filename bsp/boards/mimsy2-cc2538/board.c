@@ -78,7 +78,7 @@ void board_init(void) {
   // debugpins_init(); //changed for inchworm code
    //button_init();
    sctimer_init(); //changed for inchworm code
-   //uart_init(); //changed for inchwrom code
+   uart_init(); //changed for inchwrom code
    radio_init(); //changed for incwhorm code
    i2c_init(); //changed for inchworm code
   // sensors_init();

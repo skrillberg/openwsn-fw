@@ -141,6 +141,7 @@ void urocket_control_cb(void){
 	IMUData datapoint;
 	short sensors=INV_XYZ_GYRO | INV_WXYZ_QUAT|INV_XYZ_ACCEL;
 	short more;
+
 	float fquats[4] = {0,0,0,0};
 
 	short gyro[3] = {0,0,0};

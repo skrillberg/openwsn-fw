@@ -25,6 +25,8 @@ typedef struct {
    uint16_t              period;  ///< tutorial packet sending period>
    udp_resource_desc_t     desc;  ///< resource descriptor for this module, used to register at UDP stack
    uint16_t	     send_count;  ///<our send counter used to track how many packets we have left to send
+   uint16_t	     rssi; //rssi from radio
+   uint16_t	     corr; //7 bit correlation from received packet
 } tutorial_vars_t;
 
 //=========================== prototypes ======================================

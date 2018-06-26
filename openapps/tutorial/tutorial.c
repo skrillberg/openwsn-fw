@@ -73,6 +73,8 @@ void tutorial_receive(OpenQueueEntry_t* pkt) {
    //if we recieve an 'i', we intiate 10 packets to be sent by timer
   // if(pkt->payload[0]=='i' ){
 	tutorial_vars.send_count = 10;
+	tutorial_vars.rssi=ieee154e_vars.dataReceived->l1_rssi;
+	tutorial_vars.corr=ieee154e_vars.dataReceived->l1_lqi;
 scheduler_push_task(tutorial_task_cb,TASKPRIO_COAP);
   // }
    openqueue_freePacketBuffer(pkt);

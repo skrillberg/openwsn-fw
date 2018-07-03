@@ -9,6 +9,7 @@
 */
 
 #include "opencoap.h"
+#include "opentimers.h"
 
 //=========================== define ==========================================
 
@@ -16,13 +17,29 @@
 
 //=========================== variables =======================================
 
+typedef union{
+   float flt;
+   float bytes[4];
+}floatbyte_t;
 typedef struct {
    coap_resource_desc_t desc;
+   opentimers_id_t  timerId;
+   uint16_t period;
+   floatbyte_t xlocation;
+   floatbyte_t ylocation;
+   floatbyte_t zlocation;
+   uint16_t accelx;
+   uint16_t accely;
+   uint16_t accelz;
+   uint8_t frame_start;
+   uint32_t byte_count;
+   uint8_t rx_buf[20];
+   uint8_t rx_ready;
+   uint8_t listening;
 } cinfo_vars_t;
 
 //=========================== prototypes ======================================
 
-void cinfo_init(void);
 
 /**
 \}

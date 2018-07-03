@@ -26,7 +26,7 @@
 #include "icmpv6rpl.h"
 #include "icmpv6echo.h"
 #include "msf.h"
-
+#include "cinfo.h"
 
 
 //=========================== variables =======================================
@@ -976,6 +976,7 @@ void isr_openserial_tx(void) {
 void isr_openserial_rx(void) {
     uint8_t rxbyte;
     uint8_t inputBufFill;
+ 
 
     // stop if I'm not in input mode
     if (openserial_vars.mode!=MODE_INPUT) {
@@ -984,6 +985,27 @@ void isr_openserial_rx(void) {
 
     // read byte just received
     rxbyte = uart_readByte();
+	//swipe in and steal ros message
+
+	//if the starting flag is received, tell the app that a frame has started
+	if(cinfo_vars.frame_start == 0){
+ 		if(rxbyte == 126){
+			cinfo_vars.frame_start = 1;
+  			cinfo_vars.byte_count = 0;
+		}
+	}
+	else if(cinfo_vars.frame_start == 1 && (rxbyte != 126) ){
+		//first byte in buffer says how long the packet is
+		cinfo_vars.rx_buf[cinfo_vars.byte_count+1] = rxbyte;
+		cinfo_vars.byte_count++;
+	}else{
+		//this occurs when a another frame byte shows up
+		cinfo_vars.rx_buf[0] = cinfo_vars.byte_count;
+		cinfo_vars.frame_start = 0;
+		cinfo_vars.rx_ready = 1;
+
+	}
+
     // keep length
     inputBufFill=openserial_vars.inputBufFill;
     
@@ -1027,10 +1049,11 @@ void isr_openserial_rx(void) {
         rxbyte==HDLC_FLAG
     ) {
         // end of frame
-        
+
         // finalize the HDLC frame
         inputHdlcClose();
-        
+
+
         if (openserial_vars.inputBufFill==0){
             // invalid HDLC frame
             openserial_printError(
@@ -1044,7 +1067,14 @@ void isr_openserial_rx(void) {
         openserial_vars.busyReceiving      = FALSE;
         openserial_stop();
     }
-    
+        
+
+
+	/*cinfo_vars.rx_buf[0]=openserial_vars.inputBuf[0];
+        cinfo_vars.rx_buf[1]=openserial_vars.inputBuf[1];
+        cinfo_vars.rx_buf[2]=openserial_vars.inputBuf[2];
+        cinfo_vars.rx_buf[3]=openserial_vars.inputBuf[3];
+	cinfo_vars.rx_ready = 1;*/
     openserial_vars.lastRxByte = rxbyte;
 }
 

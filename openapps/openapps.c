@@ -42,7 +42,7 @@ void openapps_init(void) {
    //rrt_init();
    
    // UDP
-   //uecho_init();
+   uecho_init();
    //uinject_init();
    //userialbridge_init();
    //uexpiration_init();

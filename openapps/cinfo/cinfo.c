@@ -85,9 +85,13 @@ void cinfo_init(void) {
 //this function request data updates from the simulator. Data will come in TODO structure
 void cinfo_timer_cb(opentimers_id_t id){
 	 uint8_t bytes[3];
-	 bytes[0] = rand()%200;
-	 bytes[1] = rand()%200;
-	 bytes[2] = rand()%200;
+	 bytes[0] = rand()%3*0;
+	 bytes[1] = rand()%3*0;
+	 bytes[2] = rand()%3-1;
+	 shortbyte_t accelx;
+	 shortbyte_t accely;
+	 shortbyte_t accelz;
+
 	 uart_enableInterrupts();
          openserial_vars.mode=MODE_INPUT;
 	 uart_writeBufferByLen_FASTSIM(bytes,3);
@@ -105,7 +109,18 @@ void cinfo_timer_cb(opentimers_id_t id){
 	 //printf("hi"); */
 	 if(cinfo_vars.rx_ready == 1){
 		cinfo_vars.rx_ready=0;
-                printf("uart rx: %d, %d, %d, %d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3]); 
+                printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]); 
+		accelx.bytes[0] = cinfo_vars.rx_buf[1];
+		accelx.bytes[1] = cinfo_vars.rx_buf[2];
+
+		accely.bytes[0] = cinfo_vars.rx_buf[3];
+		accely.bytes[1] = cinfo_vars.rx_buf[4];
+
+		accelz.bytes[0] = cinfo_vars.rx_buf[5];
+		accelz.bytes[1] = cinfo_vars.rx_buf[6];
+
+		
+		printf("Accelerations (x: %d, y: %d, z: %d) \n",accelx.shrt,accely.shrt,accelz.shrt);
 	}
   	
 		
@@ -134,7 +149,7 @@ void rxCb(void){
 		//this occurs when a another frame byte shows up
 		cinfo_vars.rx_buf[0] = cinfo_vars.byte_count;
 		cinfo_vars.frame_start = 0;
-		printf("uart rx: %d, %d, %d, %d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3]);
+		//printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]);
 	}
 	
 	//printf("uart rx interrupt: %d \n",byte);

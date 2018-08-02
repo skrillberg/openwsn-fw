@@ -19,8 +19,14 @@
 
 typedef union{
    float flt;
-   float bytes[4];
+   uint8_t bytes[4];
 }floatbyte_t;
+
+typedef union{
+   short shrt;
+   uint8_t bytes[2];
+}shortbyte_t;
+
 typedef struct {
    coap_resource_desc_t desc;
    opentimers_id_t  timerId;

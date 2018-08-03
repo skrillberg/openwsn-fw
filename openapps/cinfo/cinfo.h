@@ -42,6 +42,7 @@ typedef struct {
    uint8_t rx_buf[20];
    uint8_t rx_ready;
    uint8_t listening;
+   float time;
 } cinfo_vars_t;
 
 //=========================== prototypes ======================================

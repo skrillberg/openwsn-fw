@@ -18,7 +18,7 @@
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
-#define CINFO_PERIOD_MS 200
+#define CINFO_PERIOD_MS 150
 //=========================== variables =======================================
 
 cinfo_vars_t cinfo_vars;

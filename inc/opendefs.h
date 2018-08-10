@@ -96,6 +96,8 @@ enum {
    WKP_UDP_INJECT                      =   61617,// 0xf0b1
    WKP_UDP_RINGMASTER                  =   15000,
    WKP_UDP_SERIALBRIDGE                =    2001,
+   WKP_UDP_ROCKET		       =    2010,
+   WKP_UDP_TUTORIAL		       =    2018,
 };
 
 //status elements
@@ -174,6 +176,8 @@ enum {
    COMPONENT_CJOIN                     = 0x27,
    COMPONENT_OPENOSCOAP                = 0x28,
    COMPONENT_CINFRARED                 = 0x29,
+   COMPONENT_UROCKET		       = 0x2A,
+   COMPONENT_tutorial		       = 0x2B,
 };
 
 /**
@@ -265,6 +269,7 @@ enum {
    ERR_REPLAY_FAILED                   = 0x47, // OSCOAP replay protection failed
    ERR_DECRYPTION_FAILED               = 0x48, // OSCOAP decryption and tag verification failed
    ERR_ABORT_JOIN_PROCESS              = 0x49, // Aborted join process {code location {0}}
+   ERROR_DEBUG				= 0x4A, //custon debug message
 };
 
 //=========================== typedef =========================================

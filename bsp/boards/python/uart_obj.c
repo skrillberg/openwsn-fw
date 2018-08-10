@@ -132,7 +132,7 @@ void uart_clearTxInterrupts(OpenMote* self) {
 
 #ifdef FASTSIM
 void uart_writeByte(OpenMote* self, uint8_t byteToWrite) {
-   printf("[CRITICAL] uart_writeByte() should not be called\r\n");
+   printf("[CRITICAL] byte written: %x should not be called\r\n",byteToWrite);
 }
 #else
 void uart_writeByte(OpenMote* self, uint8_t byteToWrite) {
@@ -229,7 +229,13 @@ void uart_writeBufferByLen_FASTSIM(OpenMote* self, uint8_t* buffer, uint16_t len
       len
    );
 #endif
-   
+   if(len==2){
+   printf("C@0x%x: uart_writeBufferByLen_FASTSIM(buffer=%x,len=%d)... \n",
+      self,
+      buffer,
+      len
+   );
+   }
    // forward to Python
    frame      = PyList_New(len);
    if (frame==NULL) {

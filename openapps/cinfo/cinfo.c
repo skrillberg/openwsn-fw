@@ -87,10 +87,10 @@ void cinfo_init(void) {
 void cinfo_timer_cb(opentimers_id_t id){
 	 cinfo_vars.time += (float)(CINFO_PERIOD_MS/1000.0);
 	 floatbyte_t controls[3];
-	 //controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
-	 //controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
-	 controls[0].flt = sinf(cinfo_vars.time)*0.25;
-	 controls[1].flt = cosf(cinfo_vars.time)*0.25;
+	 controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	 controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	 //controls[0].flt = sinf(cinfo_vars.time)*0.25;
+	 //controls[1].flt = cosf(cinfo_vars.time)*0.25;
 	 controls[2].flt = sinf(cinfo_vars.time)*3;
 	 shortbyte_t accelx;
 	 shortbyte_t accely;

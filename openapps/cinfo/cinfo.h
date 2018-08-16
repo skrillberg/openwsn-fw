@@ -27,6 +27,16 @@ typedef union{
    uint8_t bytes[2];
 }shortbyte_t;
 
+typedef struct{
+   floatbyte_t x;
+   floatbyte_t y;
+   floatbyte_t z;	
+}position_t;
+
+//typedef struct{
+ //  floatbyte_t position[3];
+//} neighbor_t;
+
 typedef struct {
    coap_resource_desc_t desc;
    opentimers_id_t  timerId;
@@ -39,10 +49,12 @@ typedef struct {
    uint16_t accelz;
    uint8_t frame_start;
    uint32_t byte_count;
-   uint8_t rx_buf[20];
+   uint8_t rx_buf[200];
    uint8_t rx_ready;
    uint8_t listening;
    float time;
+   floatbyte_t controls[3];
+  // neighbor_t neighbors[30];
 } cinfo_vars_t;
 
 //=========================== prototypes ======================================

@@ -15,6 +15,9 @@
 #include "opentimers.h"
 #include <stdlib.h>
 #include <math.h>
+#include "neighbors.h"
+#include "idmanager.h"
+#include "opendefs.h"
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
@@ -85,23 +88,48 @@ void cinfo_init(void) {
 //=========================== private =========================================
 //this function request data updates from the simulator. Data will come in TODO structure
 void cinfo_timer_cb(opentimers_id_t id){
+
+	 uint8_t i;
+	 i = 0;
+   
+
+   	 for (i=0;i<MAXNUMNEIGHBORS;i++) {
+      		if (neighbors_vars.neighbors[i].used==TRUE) {
+        		 printf("Me: %d, Neighbor Address: %x \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7]);
+     		 }
+  	 }
+	 printf("\n");
 	 cinfo_vars.time += (float)(CINFO_PERIOD_MS/1000.0);
 	 floatbyte_t controls[3];
-	 controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
-	 controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	 if((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]) == 6){
+		controls[0].flt = (float) 10.0;
+		controls[1].flt	= 0;
+		printf("hi, i'm mote 6. Here are my controls: %f, %f \n",controls[0].flt,controls[1].flt);
+	 }else{
+	    	 controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	     	controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	 }
 	 //controls[0].flt = sinf(cinfo_vars.time)*0.25;
 	 //controls[1].flt = cosf(cinfo_vars.time)*0.25;
-	 controls[2].flt = sinf(cinfo_vars.time)*3;
-	 shortbyte_t accelx;
+	 //controls[2].flt = sinf(cinfo_vars.time)*3;
+	 controls[2].flt = cinfo_vars.controls[2].flt;
+       	 shortbyte_t accelx;
 	 shortbyte_t accely;
 	 shortbyte_t accelz;
-	 
-
+	 floatbyte_t position[3];
+	 floatbyte_t velocity[3];
+	 floatbyte_t angular[3];
+	
 	 uint8_t control_buf[3*4];
+	int j;
+	j=0;
+	i=0;
+		
 	 //create buffer to send controls data out
-	 for(int i =0; i<3;i++){
-		for(int j =0; j <4 ; j++){
+	 for(i =0; i<3;i++){
+		for( j =0; j <4 ; j++){
 			control_buf[4*i+j] = controls[i].bytes[j];
+
 		}
 	 	
 	 }
@@ -125,7 +153,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 	 //printf("hi"); */
 	 if(cinfo_vars.rx_ready == 1){
 		cinfo_vars.rx_ready=0;
-                printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]); 
+                //printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]); 
 		accelx.bytes[0] = cinfo_vars.rx_buf[1];
 		accelx.bytes[1] = cinfo_vars.rx_buf[2];
 
@@ -134,9 +162,42 @@ void cinfo_timer_cb(opentimers_id_t id){
 
 		accelz.bytes[0] = cinfo_vars.rx_buf[5];
 		accelz.bytes[1] = cinfo_vars.rx_buf[6];
+		int buf_start_value = 7;
 
+		//iterate through all bytes to get position from buffer
+		for(i =0;i<3;i++){
+			for(int j = 0; j<4;j++){
+				position[i].bytes[j] = cinfo_vars.rx_buf[buf_start_value+i*4+j];
+			}
+		}
+		//printf("position (x: %f, y: %f, z: %f) \n",position[0].flt,position[1].flt,position[2].flt);
 		
-		printf("Accelerations (x: %f, y: %f, z: %f) \n",((float)accelx.shrt)*9.8/36767*16,((float)accely.shrt)*9.8/36767*16,((float)accelz.shrt)*9.8/36767*16);
+		if( position[2].flt<4){
+			cinfo_vars.controls[2].flt=2;
+		}else{
+			cinfo_vars.controls[2].flt=0;
+		}
+		buf_start_value = 19;
+		//5 neighbors
+		floatbyte_t neighbors[30][3];
+		//printf("size of buf: %d\n",sizeof(neighbors));
+		int neighbor = 0;
+		int coord = 0;
+		int byte_i = 0;
+		/*
+		for(neighbor = 0;neighbor<5;neighbor++){
+			for(int coord = 0; coord<3;coord++){
+				for(byte_i = 0; byte_i<4;byte_i++){
+					neighbors[neighbor][coord].bytes[byte_i] = cinfo_vars.rx_buf[buf_start_value+neighbor*12+coord*4+byte_i];
+					//printf("(i: %d, j: %d, k: %d, rxbuf index: %d) \n",neighbor,coord,byte_i,buf_start_value+neighbor*12+coord*4+byte_i);
+					//printf("buf: %d)\n",cinfo_vars.rx_buf[buf_start_value+neighbor*12+coord*4+byte_i]);
+				}
+			}
+			//printf("neighbor (x: %f, y: %f, z: %f) \n",neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
+		}*/
+		
+		//printf("My Address: %d, Num of Neighbors: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_getNumNeighbors());
+		//printf("Accelerations (x: %f, y: %f, z: %f) \n",((float)accelx.shrt)*9.8/36767*16,((float)accely.shrt)*9.8/36767*16,((float)accelz.shrt)*9.8/36767*16);
 	}
   	
 		

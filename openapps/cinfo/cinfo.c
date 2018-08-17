@@ -95,23 +95,27 @@ void cinfo_timer_cb(opentimers_id_t id){
 
    	 for (i=0;i<MAXNUMNEIGHBORS;i++) {
       		if (neighbors_vars.neighbors[i].used==TRUE) {
-        		 printf("Me: %d, Neighbor Address: %x \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7]);
+        		 //printf("Me: %d, Neighbor Address: %x \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7]);
      		 }
   	 }
-	 printf("\n");
+	 //printf("\n");
 	 cinfo_vars.time += (float)(CINFO_PERIOD_MS/1000.0);
 	 floatbyte_t controls[3];
-	 if((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]) == 6){
-		controls[0].flt = (float) 10.0;
-		controls[1].flt	= 0;
+	 if(((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]) == 6)&&(cinfo_vars.time > 5)){
+		controls[0].flt = (float) 5 + cinfo_vars.controls[0].flt;
+		controls[1].flt	= 0 + cinfo_vars.controls[1].flt  ;
 		printf("hi, i'm mote 6. Here are my controls: %f, %f \n",controls[0].flt,controls[1].flt);
 	 }else{
-	    	 controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
-	     	controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	    	 //controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	     	//controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+	controls[0].flt = cinfo_vars.controls[0].flt;
+	 controls[1].flt = cinfo_vars.controls[1].flt;
 	 }
+	 //printf("time: %f \n",cinfo_vars.time);
 	 //controls[0].flt = sinf(cinfo_vars.time)*0.25;
 	 //controls[1].flt = cosf(cinfo_vars.time)*0.25;
 	 //controls[2].flt = sinf(cinfo_vars.time)*3;
+
 	 controls[2].flt = cinfo_vars.controls[2].flt;
        	 shortbyte_t accelx;
 	 shortbyte_t accely;
@@ -152,6 +156,10 @@ void cinfo_timer_cb(opentimers_id_t id){
         // cinfo_vars.accelz = bytes[2];
 	 //printf("hi"); */
 	 if(cinfo_vars.rx_ready == 1){
+		int isSix=0;
+		 if(((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7])) == 6){
+			isSix=1;
+		}
 		cinfo_vars.rx_ready=0;
                 //printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]); 
 		accelx.bytes[0] = cinfo_vars.rx_buf[1];
@@ -184,8 +192,8 @@ void cinfo_timer_cb(opentimers_id_t id){
 		int neighbor = 0;
 		int coord = 0;
 		int byte_i = 0;
-		/*
-		for(neighbor = 0;neighbor<5;neighbor++){
+		
+		for(neighbor = 0;neighbor<10;neighbor++){
 			for(int coord = 0; coord<3;coord++){
 				for(byte_i = 0; byte_i<4;byte_i++){
 					neighbors[neighbor][coord].bytes[byte_i] = cinfo_vars.rx_buf[buf_start_value+neighbor*12+coord*4+byte_i];
@@ -194,8 +202,48 @@ void cinfo_timer_cb(opentimers_id_t id){
 				}
 			}
 			//printf("neighbor (x: %f, y: %f, z: %f) \n",neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
-		}*/
+		}
 		
+
+		//compute gradients
+		i=0;
+		j=0;
+		float R = 50;
+		floatbyte_t sum[3]; //[x gradient sum, y gradient sum, z gradient sum]
+
+		sum[0].flt = 0;
+		sum[1].flt=0;
+		sum[2].flt=0;
+		float kconn=.01;
+		float kcol=0.011;
+		float sig = 10;
+		for(i=0;i<10;i++){
+			float distance =pow((position[0].flt - neighbors[i][0].flt),2) + pow((position[1].flt - neighbors[i][1].flt),2) +pow((position[2].flt - neighbors[i][2].flt),2);	
+			for(j=0;j<3;j++){
+				float coord_dif = position[j].flt - neighbors[i][j].flt;
+						
+				float prox_grad = -2*coord_dif/pow(distance,2);
+				if(isSix){
+					//printf("distance squared: %f, coord dif: %f, proximity grad: %f \n",distance,coord_dif, prox_grad);
+				}
+				
+				if(distance>0){
+				//sum[j].flt += prox_grad + k*2*(coord_dif)/pow((R*R -distance),2); //1/r-xij
+				sum[j].flt += -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R*sig)) + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig));
+			}	}
+
+			if(isSix){
+			//printf("denominator not squared: %f \n",R*R-distance);
+			}
+			
+		}
+		if(isSix){
+			printf("gradient: %f, %f, %f \n",sum[0].flt,sum[1].flt,sum[2].flt);
+			printf("\n");
+		}
+		
+		cinfo_vars.controls[0].flt=-1*sum[0].flt;
+		cinfo_vars.controls[1].flt=-1*sum[1].flt;
 		//printf("My Address: %d, Num of Neighbors: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_getNumNeighbors());
 		//printf("Accelerations (x: %f, y: %f, z: %f) \n",((float)accelx.shrt)*9.8/36767*16,((float)accely.shrt)*9.8/36767*16,((float)accelz.shrt)*9.8/36767*16);
 	}

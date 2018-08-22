@@ -18,6 +18,8 @@
 #include "neighbors.h"
 #include "idmanager.h"
 #include "opendefs.h"
+#include "icmpv6rpl.h"
+
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
@@ -72,7 +74,7 @@ void cinfo_init(void) {
    
    // register with the CoAP module
    opencoap_register(&cinfo_vars.desc);
-
+   cinfo_vars.me =(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]);	
    // start timer for requesting data from ROS Simulator
     cinfo_vars.period = CINFO_PERIOD_MS;
 	cinfo_vars.timerId = opentimers_create();
@@ -88,21 +90,23 @@ void cinfo_init(void) {
 //=========================== private =========================================
 //this function request data updates from the simulator. Data will come in TODO structure
 void cinfo_timer_cb(opentimers_id_t id){
-
+	 open_addr_t parent_addr;
+	 icmpv6rpl_getPreferredParentEui64(&parent_addr);
+	 printf("Mote %d Parent: %d \n",cinfo_vars.me,parent_addr.addr_64b[7]);
 	 uint8_t i;
 	 i = 0;
    
 
    	 for (i=0;i<MAXNUMNEIGHBORS;i++) {
       		if (neighbors_vars.neighbors[i].used==TRUE) {
-        		 //printf("Me: %d, Neighbor Address: %x \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7]);
+        		 printf("Me: %d, Neighbor Address: %x \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7]);
      		 }
   	 }
 	 //printf("\n");
 	 cinfo_vars.time += (float)(CINFO_PERIOD_MS/1000.0);
 	 floatbyte_t controls[3];
-	 if(((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]) == 6)&&(cinfo_vars.time > 5)){
-		controls[0].flt = (float) 5 + cinfo_vars.controls[0].flt;
+	 if(((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]) == 6)&&(cinfo_vars.time > 20)){
+		controls[0].flt = (float) 10 + cinfo_vars.controls[0].flt;
 		controls[1].flt	= 0 + cinfo_vars.controls[1].flt  ;
 		printf("hi, i'm mote 6. Here are my controls: %f, %f \n",controls[0].flt,controls[1].flt);
 	 }else{
@@ -157,7 +161,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 	 //printf("hi"); */
 	 if(cinfo_vars.rx_ready == 1){
 		int isSix=0;
-		 if(((uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7])) == 6){
+		 if(cinfo_vars.me == 6){
 			isSix=1;
 		}
 		cinfo_vars.rx_ready=0;
@@ -192,6 +196,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 		int neighbor = 0;
 		int coord = 0;
 		int byte_i = 0;
+	
 		
 		for(neighbor = 0;neighbor<10;neighbor++){
 			for(int coord = 0; coord<3;coord++){
@@ -201,26 +206,71 @@ void cinfo_timer_cb(opentimers_id_t id){
 					//printf("buf: %d)\n",cinfo_vars.rx_buf[buf_start_value+neighbor*12+coord*4+byte_i]);
 				}
 			}
-			//printf("neighbor (x: %f, y: %f, z: %f) \n",neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
+			//printf("mote: %d, neighbor (x: %f, y: %f, z: %f) \n",cinfo_vars.me,neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
 		}
 		
 
+		//use only specific neighbors for each mote 
+		int num_neighbors;
+		uint8_t neighbor_indicies[30];
+
+		switch(cinfo_vars.me){
+
+			case 6:
+				num_neighbors = 1;
+				neighbor_indicies[0] = 5;
+				
+				break;
+			case 5:
+				num_neighbors = 2;
+				neighbor_indicies[0] = 4;
+				neighbor_indicies[1] = 6;
+				break;
+			case 4:
+				num_neighbors = 2;
+				neighbor_indicies[0] = 3;
+				neighbor_indicies[1] = 5;
+				break;
+			case 3:
+				num_neighbors = 2;
+				neighbor_indicies[0] = 2;
+				neighbor_indicies[1] = 4;
+				break;
+			default:
+				num_neighbors = 6;
+				for(i=0;i<6;i++){
+				if(i<2 ){
+					neighbor_indicies[i] = i+1;
+				}else{
+					neighbor_indicies[i] = i+5;
+				}
+				
+				}
+				break;
+		
+				
+		}	
 		//compute gradients
+
+		
 		i=0;
 		j=0;
-		float R = 50;
+		float R = 40;
 		floatbyte_t sum[3]; //[x gradient sum, y gradient sum, z gradient sum]
 
 		sum[0].flt = 0;
 		sum[1].flt=0;
 		sum[2].flt=0;
 		float kconn=.01;
-		float kcol=0.011;
-		float sig = 10;
-		for(i=0;i<10;i++){
-			float distance =pow((position[0].flt - neighbors[i][0].flt),2) + pow((position[1].flt - neighbors[i][1].flt),2) +pow((position[2].flt - neighbors[i][2].flt),2);	
+		float kcol=0.01;
+		float sig = 2;
+
+				
+		
+		for(i=0;i<num_neighbors;i++){
+			float distance =pow((position[0].flt - neighbors[neighbor_indicies[i]-1][0].flt),2) + pow((position[1].flt - neighbors[neighbor_indicies[i]-1][1].flt),2) +pow((position[2].flt - neighbors[neighbor_indicies[i]-1][2].flt),2);	
 			for(j=0;j<3;j++){
-				float coord_dif = position[j].flt - neighbors[i][j].flt;
+				float coord_dif = position[j].flt - neighbors[neighbor_indicies[i]-1][j].flt;
 						
 				float prox_grad = -2*coord_dif/pow(distance,2);
 				if(isSix){
@@ -229,21 +279,25 @@ void cinfo_timer_cb(opentimers_id_t id){
 				
 				if(distance>0){
 				//sum[j].flt += prox_grad + k*2*(coord_dif)/pow((R*R -distance),2); //1/r-xij
-				sum[j].flt += -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R*sig)) + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig));
+				sum[j].flt += -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R)) + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig));
 			}	}
 
-			if(isSix){
-			//printf("denominator not squared: %f \n",R*R-distance);
+			if(cinfo_vars.me >= 3 && cinfo_vars.me <=6){
+			printf("mote: %d, neighbor: %d, distance: %f \n",cinfo_vars.me,neighbor_indicies[i],distance);
+			}
+			if(cinfo_vars.me == 7){
+			//	printf("mote: %d, neighbor: %d, distance: %f \n",7,neighbor_indicies[i],distance);	
 			}
 			
 		}
-		if(isSix){
-			printf("gradient: %f, %f, %f \n",sum[0].flt,sum[1].flt,sum[2].flt);
+		if((cinfo_vars.me ==5 )|| (cinfo_vars.me ==6) ){
+			printf("mote: %d gradient: %f, %f, %f \n",cinfo_vars.me,sum[0].flt,sum[1].flt,sum[2].flt);
 			printf("\n");
 		}
 		
 		cinfo_vars.controls[0].flt=-1*sum[0].flt;
 		cinfo_vars.controls[1].flt=-1*sum[1].flt;
+		printf("\n");
 		//printf("My Address: %d, Num of Neighbors: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_getNumNeighbors());
 		//printf("Accelerations (x: %f, y: %f, z: %f) \n",((float)accelx.shrt)*9.8/36767*16,((float)accely.shrt)*9.8/36767*16,((float)accelz.shrt)*9.8/36767*16);
 	}

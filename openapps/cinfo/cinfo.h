@@ -53,6 +53,7 @@ typedef struct {
    uint8_t rx_ready;
    uint8_t listening;
    float time;
+   uint8_t me;
    floatbyte_t controls[3];
   // neighbor_t neighbors[30];
 } cinfo_vars_t;

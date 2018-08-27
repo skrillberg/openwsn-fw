@@ -111,7 +111,7 @@ void icmpv6rpl_init(void) {
     icmpv6rpl_vars.conf.type = RPL_OPTION_CONFIG;
     icmpv6rpl_vars.conf.optLen = 14;
     icmpv6rpl_vars.conf.flagsAPCS = DEFAULT_PATH_CONTROL_SIZE; //DEFAULT_PATH_CONTROL_SIZE = 0
-    icmpv6rpl_vars.conf.DIOIntDoubl = 250; //8 -> trickle period - max times it will double ~20min
+    icmpv6rpl_vars.conf.DIOIntDoubl = 8; //8 -> trickle period - max times it will double ~20min
     icmpv6rpl_vars.conf.DIOIntMin = 12 ; // 12 ->  min trickle period -> 16s
     icmpv6rpl_vars.conf.DIORedun = 0 ; // 0
     icmpv6rpl_vars.conf.maxRankIncrease = 2048; //  2048
@@ -172,8 +172,8 @@ void icmpv6rpl_init(void) {
     icmpv6rpl_vars.timerIdDAO                = opentimers_create();
     opentimers_scheduleIn(
         icmpv6rpl_vars.timerIdDAO,
-	icmpv6rpl_vars.daoPeriod,
-        //openrandom_getRandomizePeriod(icmpv6rpl_vars.daoPeriod, NUM_CHANNELS*SLOTFRAME_LENGTH*SLOTDURATION),
+	//icmpv6rpl_vars.daoPeriod,
+        openrandom_getRandomizePeriod(icmpv6rpl_vars.daoPeriod, NUM_CHANNELS*SLOTFRAME_LENGTH*SLOTDURATION),
         TIME_MS,
         TIMER_ONESHOT,
         icmpv6rpl_timer_DAO_cb
@@ -762,8 +762,8 @@ void icmpv6rpl_timer_DAO_cb(opentimers_id_t id) {
     
     opentimers_scheduleIn(
         icmpv6rpl_vars.timerIdDAO,
-	icmpv6rpl_vars.daoPeriod,
-        //openrandom_getRandomizePeriod(icmpv6rpl_vars.daoPeriod, NUM_CHANNELS*SLOTFRAME_LENGTH*SLOTDURATION),
+	//icmpv6rpl_vars.daoPeriod,
+        openrandom_getRandomizePeriod(icmpv6rpl_vars.daoPeriod, NUM_CHANNELS*SLOTFRAME_LENGTH*SLOTDURATION),
         TIME_MS,
         TIMER_ONESHOT,
         icmpv6rpl_timer_DAO_cb

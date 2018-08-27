@@ -301,6 +301,7 @@ static PyMethodDef OpenMote_methods[] = {
    {  "uart_isr_rx",              (PyCFunction)OpenMote_uart_isr_rx,                METH_NOARGS,   ""},
    {  "supply_on",                (PyCFunction)OpenMote_supply_on,                  METH_NOARGS,   ""},
    {  "supply_off",               (PyCFunction)OpenMote_supply_off,                 METH_NOARGS,   ""},
+   
    {NULL} // sentinel
 };
 

@@ -61,6 +61,8 @@ void uart_writeBufferByLen_FASTSIM(OpenMote* self, uint8_t* buffer, uint16_t len
 void supply_on(OpenMote* self);
 void supply_off(OpenMote* self);
 
+
+
 //=========================== enums ===========================================
 
 // notifications sent from the C mote to the Python BSP
@@ -152,6 +154,9 @@ enum {
    MOTE_NOTIF_uart_writeCircularBuffer_FASTSIM,
    MOTE_NOTIF_uart_writeBufferByLen_FASTSIM,
    MOTE_NOTIF_uart_readByte,
+   // location
+   MOTE_NOTIF_board_get_location,
+	
    // last
    MOTE_NOTIF_LAST
 };
@@ -178,7 +183,6 @@ typedef void (*sctimer_cbt)(OpenMote* self);
 typedef struct {
    sctimer_cbt      compare_cb;
 } sctimer_icb_t;
-
 
 //=========================== struct ==========================================
 

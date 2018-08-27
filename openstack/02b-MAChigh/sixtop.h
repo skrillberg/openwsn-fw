@@ -87,7 +87,7 @@ typedef uint16_t                (*sixtop_sf_getmetadata)(void);
 typedef metadata_t              (*sixtop_sf_translatemetadata)(void);
 typedef void (*sixtop_sf_handle_callback)(uint8_t arg, open_addr_t* address);
 
-#define SIXTOP_MINIMAL_EBPERIOD     5 // minist period of sending EB
+#define SIXTOP_MINIMAL_EBPERIOD     1 // minist period of sending EB
 
 //=========================== module variables ================================
 

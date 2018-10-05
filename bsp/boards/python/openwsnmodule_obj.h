@@ -156,6 +156,7 @@ enum {
    MOTE_NOTIF_uart_readByte,
    // location
    MOTE_NOTIF_board_get_location,
+   MOTE_NOTIF_board_cmd_vel,
 	
    // last
    MOTE_NOTIF_LAST

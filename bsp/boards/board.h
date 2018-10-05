@@ -32,6 +32,7 @@ void board_init(void);
 void board_sleep(void);
 void board_reset(void);
 void board_get_location(int16_t* x, int16_t* y,int16_t* z,int16_t** neighbor_list,uint8_t num_neighbors);
+void board_cmd_vel(float x_cmd, float y_cmd, float z_cmd);
 /**
 \}
 \}

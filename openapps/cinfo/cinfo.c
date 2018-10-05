@@ -23,7 +23,7 @@
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
-#define CINFO_PERIOD_MS 150
+#define CINFO_PERIOD_MS 50
 //=========================== variables =======================================
 
 cinfo_vars_t cinfo_vars;
@@ -122,15 +122,11 @@ void cinfo_timer_cb(opentimers_id_t id){
 	}
 		
 	else{
-	    	 //controls[0].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
-	     	//controls[1].flt = (float)rand()/(float)(RAND_MAX/1.0)-0.5;
+
 	controls[0].flt = cinfo_vars.controls[0].flt;
 	 controls[1].flt = cinfo_vars.controls[1].flt;
 	 }
-	 //printf("time: %f \n",cinfo_vars.time);
-	 //controls[0].flt = sinf(cinfo_vars.time)*0.25;
-	 //controls[1].flt = cosf(cinfo_vars.time)*0.25;
-	 //controls[2].flt = sinf(cinfo_vars.time)*3;
+
 
 	 controls[2].flt = cinfo_vars.controls[2].flt;
        	 shortbyte_t accelx;
@@ -145,52 +141,23 @@ void cinfo_timer_cb(opentimers_id_t id){
 	j=0;
 	i=0;
 		
-	 //create buffer to send controls data out
-	 for(i =0; i<3;i++){
-		for( j =0; j <4 ; j++){
-			control_buf[4*i+j] = controls[i].bytes[j];
 
-		}
-	 	
-	 }
-	 //printf("controls: %f, %f, %f,%d \n",controls[0].flt,controls[1].flt,controls[2].flt,sizeof(controls[0].flt));
-	 //printf("control bytes: %x, %x, %x,%x \n",controls[0].bytes[0],controls[0].bytes[1],controls[0].bytes[2],controls[0].bytes[3],sizeof(controls[0].flt));
-	 //printf("control buffer: %x, %x, %x, %x \n",control_buf[0],control_buf[1],control_buf[2],control_buf[3]);
-	 uart_enableInterrupts();
-         openserial_vars.mode=MODE_INPUT;
-	 uart_writeBufferByLen_FASTSIM(control_buf,12);
+	 printf("attempting to call board_cmd_vel");
+	 board_cmd_vel(controls[0].flt, controls[1].flt, controls[2].flt);
 	 cinfo_vars.listening = 1;
-	 //openserial_startInput();
-	 //openserial_getInputBuffer(bytes, 3);
-	/*
-	 bytes[0] = uart_readByte();
-	 bytes[1] = uart_readByte();
-	 bytes[2] = uart_readByte();
-	 
-        // cinfo_vars.accelx = bytes[0];
-	 //cinfo_vars.accely = bytes[1];
-        // cinfo_vars.accelz = bytes[2];
-	 //printf("hi"); */
+
 	 if( 1){
 		int isSix=0;
 		 if(cinfo_vars.me == 6){
 			isSix=1;
 		}
 		cinfo_vars.rx_ready=0;
-                //printf("uart rx: %d, %d, %d, %d,%d,%d,%d \n",cinfo_vars.rx_buf[0],cinfo_vars.rx_buf[1],cinfo_vars.rx_buf[2],cinfo_vars.rx_buf[3],cinfo_vars.rx_buf[4],cinfo_vars.rx_buf[5],cinfo_vars.rx_buf[6]); 
-		//accelx.bytes[0] = cinfo_vars.rx_buf[1];
-		//accelx.bytes[1] = cinfo_vars.rx_buf[2];
 
-		//accely.bytes[0] = cinfo_vars.rx_buf[3];
-		//accely.bytes[1] = cinfo_vars.rx_buf[4];
-
-		//accelz.bytes[0] = cinfo_vars.rx_buf[5];
-		//accelz.bytes[1] = cinfo_vars.rx_buf[6];
 		int buf_start_value = 7;
 		uint16_t *neighbor_rows[10] = {neighbor_list[0],neighbor_list[1],neighbor_list[2],neighbor_list[3],neighbor_list[4],neighbor_list[5],neighbor_list[6],neighbor_list[7],neighbor_list[8],neighbor_list[9]};
 
-		printf("List addresses, %x, %x, %x, %x \n",neighbor_list[0],neighbor_list[1],neighbor_list[2],neighbor_list[3]);
-		printf("Rows addresses, %x, %x, %x, \n",neighbor_rows[0],neighbor_rows[1],neighbor_rows[2]);
+		//printf("List addresses, %x, %x, %x, %x \n",neighbor_list[0],neighbor_list[1],neighbor_list[2],neighbor_list[3]);
+		//printf("Rows addresses, %x, %x, %x, \n",neighbor_rows[0],neighbor_rows[1],neighbor_rows[2]);
 		board_get_location(&a,&b,&c,neighbor_rows,10);	
 		//iterate through all bytes to get position from buffer
 	
@@ -317,7 +284,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 		sum[1].flt=0;
 		sum[2].flt=0;
 		float kconn=.01;
-		float kcol=.010;
+		float kcol=30;
 		float sig = 1;
 
 				
@@ -332,7 +299,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 				float prox_grad = -2*coord_dif*1/pow(distance,3);
 				//printf("distance: %f, prox_grad: %f, coord_dif: %f \n",distance,prox_grad,coord_dif);
 				if(distance>0){
-				//sum[j].flt += kcol*prox_grad/10;
+				sum[j].flt += kcol*prox_grad;
 				//sum[j].flt+= -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R));				
 				//printf("sum[%d]: %f \n",j,sum[j].flt);
 				}
@@ -357,8 +324,8 @@ void cinfo_timer_cb(opentimers_id_t id){
 				
 				if(distance>0){
 
-				sum[j].flt += -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R)) + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig));
-				//sum[j].flt += 0*prox_grad + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig))/num_neighbors;
+				//sum[j].flt += -kcol*2*(coord_dif)*exp(-(distance)/(2*R*R)) + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig));
+				sum[j].flt += 0*prox_grad + kconn*2*(coord_dif)*exp((distance)/(2*R*R*sig))/num_neighbors;
 			}	}
 
 			//if(cinfo_vars.me >= 3 && cinfo_vars.me <=6){
@@ -377,6 +344,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 		
 		cinfo_vars.controls[0].flt=-1*sum[0].flt;
 		cinfo_vars.controls[1].flt=-1*sum[1].flt;
+		//cinfo_vars.controls[2].flt=-1*sum[2].flt;
 		printf("\n");
 		//printf("My Address: %d, Num of Neighbors: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_getNumNeighbors());
 		//printf("Accelerations (x: %f, y: %f, z: %f) \n",((float)accelx.shrt)*9.8/36767*16,((float)accely.shrt)*9.8/36767*16,((float)accelz.shrt)*9.8/36767*16);

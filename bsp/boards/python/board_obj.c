@@ -116,14 +116,21 @@ void board_get_location(OpenMote* self,int16_t* x, int16_t* y, int16_t* z,int16_
 
 	for(i=0;i<(int)PyList_Size(neighbors);i++){
 		PyObject* coordinates = PyList_GetItem(neighbors,i);
-		printf("neuighbor list address, %x \n",neighbor_list[i]);
+		//printf("neuighbor list address, %x \n",neighbor_list[i]);
 		neighbor_row = neighbor_list[i];
 		*(neighbor_row)=(int16_t)PyInt_AsLong(PyList_GetItem(coordinates,0));
 		*(neighbor_row+1)=(int16_t)PyInt_AsLong(PyList_GetItem(coordinates,1));
 		*(neighbor_row+2)=(int16_t)PyInt_AsLong(PyList_GetItem(coordinates,2));
-		printf("mote %d: row addresses:%x,  %d, %d, %d \n",i+1,neighbor_row,neighbor_row[0],neighbor_row[1],neighbor_row[2]);
+		//printf("mote %d: row addresses:%x,  %d, %d, %d \n",i+1,neighbor_row,neighbor_row[0],neighbor_row[1],neighbor_row[2]);
 	}	
 	
 	//printf("successfully called PyObject_CallObject\n");	
+}
+void board_cmd_vel(OpenMote* self,float x_cmd, float y_cmd, float z_cmd){
+   	PyObject*   result;
+   	PyObject*   arglist;
+	arglist    = Py_BuildValue("(f,f,f)",x_cmd,y_cmd,z_cmd);
+	result     = PyObject_CallObject(self->callback[MOTE_NOTIF_board_cmd_vel],arglist);
+
 }
 //=========================== private =========================================

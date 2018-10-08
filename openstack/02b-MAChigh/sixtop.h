@@ -113,6 +113,11 @@ typedef struct {
    sixtop_sf_translatemetadata  cb_sf_translateMetadata;
    sixtop_sf_handle_callback    cb_sf_handleRCError;
    open_addr_t          neighborToClearCells;
+   struct{
+      int16_t x;
+      int16_t y;
+      int16_t z; 
+   		}      location; 		//this mote's location
 } sixtop_vars_t;
 
 //=========================== prototypes ======================================

@@ -2359,7 +2359,8 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
     bool    tsTemplate_checkpass;
     bool    sync_ie_checkPass;
     bool    slotframelink_ie_checkPass;
-    
+    bool    location_checkPass; //turns true when the location is changed     
+
     uint8_t ptr;
     uint16_t temp16b;
     bool    mlme_ie_found;
@@ -2370,6 +2371,11 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
     uint8_t sublen;
     uint8_t subid;
     
+    //locations variables
+    uint16_t x;
+    uint16_t y; 
+    uint16_t z;
+
     uint8_t  i;
     uint8_t  oldFrameLength;
     uint8_t  numlinks;
@@ -2381,7 +2387,8 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
     tsTemplate_checkpass        = FALSE;
     sync_ie_checkPass           = FALSE;
     slotframelink_ie_checkPass  = FALSE; 
-    
+    location_checkPass 		= FALSE;    
+
     ptr = 0;
     mlme_ie_found = FALSE;
     
@@ -2411,26 +2418,34 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
         // didn't find the MLME payload IE
         return FALSE;
     }
-    
+    for(i = 0; i < pkt->length; i++){
+	   printf("%x | ",pkt->payload[i]);
+    }
+    printf("\n");
+    printf("ielen: %d \n",ielen);
     while(
         ptr<mlme_ie_content_offset+ielen &&
         (
             chTemplate_checkPass        == FALSE || 
             tsTemplate_checkpass        == FALSE ||
             sync_ie_checkPass           == FALSE ||
-            slotframelink_ie_checkPass  == FALSE 
+            slotframelink_ie_checkPass  == FALSE ||
+	    location_checkPass 		== FALSE 	
         )
     ){
+	//printf("starting IE process eading");
         // subID
         temp16b  = *((uint8_t*)(pkt->payload)+ptr);
         temp16b |= (*((uint8_t*)(pkt->payload)+ptr+1))<<8;
         ptr += 2;
-        
+	printf("temp 16b: %x \n",temp16b);
+
         subtype = (temp16b & IEEE802154E_DESC_TYPE_IE_MASK)>>IEEE802154E_DESC_TYPE_IE_SHIFT;
         if (subtype == 1) {
             // this is long type subID
             subid  = (temp16b & IEEE802154E_DESC_SUBID_LONG_MLME_IE_MASK)>>IEEE802154E_DESC_SUBID_LONG_MLME_IE_SHIFT;
             sublen = (temp16b & IEEE802154E_DESC_LEN_LONG_MLME_IE_MASK);
+	    printf("Subtype 1 subid for IE: %x, IE length: %d \n",subid,sublen);
             switch(subid){
             case IEEE802154E_MLME_CHANNELHOPPING_IE_SUBID:
                 channelhoppingTemplateIDStoreFromEB(*((uint8_t*)(pkt->payload+ptr)));
@@ -2444,6 +2459,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
             // this is short type subID
             subid  = (temp16b & IEEE802154E_DESC_SUBID_SHORT_MLME_IE_MASK)>>IEEE802154E_DESC_SUBID_SHORT_MLME_IE_SHIFT;
             sublen = (temp16b & IEEE802154E_DESC_LEN_SHORT_MLME_IE_MASK);
+	    printf("Subid for IE: %x, IE length: %d \n",subid,sublen);
             switch(subid){
             case IEEE802154E_MLME_SYNC_IE_SUBID:
                 asnStoreFromEB((uint8_t*)(pkt->payload+ptr));
@@ -2459,6 +2475,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
                 schedule_setFrameHandle(*((uint8_t*)(pkt->payload)+ptr+1));     // slotframe id
                 oldFrameLength = schedule_getFrameLength();
                 if (oldFrameLength==0){
+	            printf("in old frrame if\n");
                     temp16b  = *((uint8_t*)(pkt->payload+ptr+2));               // slotframes length
                     temp16b |= *((uint8_t*)(pkt->payload+ptr+3))<<8;
                     schedule_setFrameLength(temp16b);
@@ -2483,15 +2500,43 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
                             &temp_neighbor // neighbor
                         );
                     }
+		    ptr += (numlinks-1)*5;
                 }
+		numlinks = *((uint8_t*)(pkt->payload+ptr+4));
+		ptr += (numlinks-1)*5;
+		
                 slotframelink_ie_checkPass = TRUE;
                 break;
+	  
+
+        
+
+	    //location IE
+            case 0x39:
+                printf("IE Length: %d, MLME IE Length: %d\n",sublen,ielen);
+                
+                x = *((uint8_t*)(pkt->payload+ptr));
+		//printf("x before the second byte is added: %x \n",x);
+                x |= *((uint8_t*)(pkt->payload+ptr+1))<<8;
+		y = *((uint8_t*)(pkt->payload+ptr+2));
+
+                y |= *((uint8_t*)(pkt->payload+ptr+3))<<8;
+
+		z = *((uint8_t*)(pkt->payload+ptr+4));
+                z |= *((uint8_t*)(pkt->payload+ptr+5))<<8;
+
+                printf("Received Location from Neighbor: %x, %x, %x, %x \n",x,y,z,x);
+		printf("pointer: %d, stop condition: %d \n",ptr ,mlme_ie_content_offset+ielen);
+		location_checkPass == TRUE;
+                break;
+
             default:
                 // unsupported IE type, skip the ie
                 break;
             }
         }
         ptr += sublen;
+	//printf("pointer: %d, stop condition: %d \n",ptr ,mlme_ie_content_offset+ielen);
     }
     
     if (

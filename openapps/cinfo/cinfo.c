@@ -19,11 +19,12 @@
 #include "idmanager.h"
 #include "opendefs.h"
 #include "icmpv6rpl.h"
+#include "sixtop.h"
 
 //=========================== defines =========================================
 
 const uint8_t cinfo_path0[] = "i";
-#define CINFO_PERIOD_MS 50
+#define CINFO_PERIOD_MS 500
 //=========================== variables =======================================
 
 cinfo_vars_t cinfo_vars;
@@ -90,23 +91,23 @@ void cinfo_init(void) {
 //=========================== private =========================================
 //this function request data updates from the simulator. Data will come in TODO structure
 void cinfo_timer_cb(opentimers_id_t id){
-	 printf("trying to get location\n");
+	 //printf("trying to get location\n");
 	 short a;
 	 short b;
 	 short c;
 	 short neighbor_list[30][3];
 
-	 printf("called get_location, x: %d, y: %d, z: %d \n",a,b,c);
+	 //printf("called get_location, x: %d, y: %d, z: %d \n",a,b,c);
 	 open_addr_t parent_addr;
 	 icmpv6rpl_getPreferredParentEui64(&parent_addr);
-	 printf("Mote %d Parent: %d \n",cinfo_vars.me,parent_addr.addr_64b[7]);
+	 //printf("Mote %d Parent: %d \n",cinfo_vars.me,parent_addr.addr_64b[7]);
 	 uint8_t i;
 	 i = 0;
    
 
    	 for (i=0;i<MAXNUMNEIGHBORS;i++) {
       		if (neighbors_vars.neighbors[i].used==TRUE) {
-        		 printf("Me: %d, Neighbor Address: %x, Rssi: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7],neighbors_getRssi(i));
+        //		 printf("Me: %d, Neighbor Address: %x, Rssi: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7],neighbors_getRssi(i));
      		 }
   	 }
 	 //printf("\n");
@@ -158,9 +159,12 @@ void cinfo_timer_cb(opentimers_id_t id){
 
 		//printf("List addresses, %x, %x, %x, %x \n",neighbor_list[0],neighbor_list[1],neighbor_list[2],neighbor_list[3]);
 		//printf("Rows addresses, %x, %x, %x, \n",neighbor_rows[0],neighbor_rows[1],neighbor_rows[2]);
-		board_get_location(&a,&b,&c,neighbor_rows,10);	
+		board_get_location(&a,&b,&c,neighbor_rows,10);	//a, b, and c are all int16s
 		//iterate through all bytes to get position from buffer
-	
+		sixtop_vars.location.x=a;
+		sixtop_vars.location.x=b;
+		sixtop_vars.location.x=c;
+
 		position[0].flt = ((float)a)/10;
 		position[1].flt = ((float)b)/10;
 		position[2].flt = ((float)c)/10;
@@ -193,8 +197,8 @@ void cinfo_timer_cb(opentimers_id_t id){
 					//printf("buf: %d)\n",cinfo_vars.rx_buf[buf_start_value+neighbor*12+coord*4+byte_i]);
 				//}
 			}
-			printf("mote: %d, neighbor (x: %f, y: %f, z: %f) \n",cinfo_vars.me,neighbor_list[neighbor][0],neighbor_list[neighbor][1],neighbor_list[neighbor][2]);
-			printf("mote: %d, neighbor (x: %f, y: %f, z: %f) \n",cinfo_vars.me,neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
+			//printf("mote: %d, neighbor (x: %f, y: %f, z: %f) \n",cinfo_vars.me,neighbor_list[neighbor][0],neighbor_list[neighbor][1],neighbor_list[neighbor][2]);
+			//printf("mote: %d, neighbor (x: %f, y: %f, z: %f) \n",cinfo_vars.me,neighbors[neighbor][0].flt,neighbors[neighbor][1].flt,neighbors[neighbor][2].flt);
 		}
 		
 
@@ -305,7 +309,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 				}
 			}
 		}
-				printf("mote: %d collision gradient: %f, %f, %f \n",cinfo_vars.me,sum[0].flt,sum[1].flt,sum[2].flt);
+			//	printf("mote: %d collision gradient: %f, %f, %f \n",cinfo_vars.me,sum[0].flt,sum[1].flt,sum[2].flt);
 		for(i=0;i<num_neighbors;i++){
 			float distance =pow((position[0].flt - neighbors[neighbor_indicies[i]-1][0].flt),2) + pow((position[1].flt - neighbors[neighbor_indicies[i]-1][1].flt),2) +pow((position[2].flt - neighbors[neighbor_indicies[i]-1][2].flt),2);	
 			for(j=0;j<3;j++){
@@ -329,7 +333,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 			}	}
 
 			//if(cinfo_vars.me >= 3 && cinfo_vars.me <=6){
-			printf("mote: %d, neighbor: %d, distance: %f \n",cinfo_vars.me,neighbor_indicies[i],sqrtf(distance));
+			//printf("mote: %d, neighbor: %d, distance: %f \n",cinfo_vars.me,neighbor_indicies[i],sqrtf(distance));
 			//}
 			if(cinfo_vars.me == 7){
 			//	printf("mote: %d, neighbor: %d, distance: %f \n",7,neighbor_indicies[i],distance);	
@@ -338,8 +342,8 @@ void cinfo_timer_cb(opentimers_id_t id){
 		}
 
 		//if((cinfo_vars.me ==5 )|| (cinfo_vars.me ==6) ){
-			printf("mote: %d gradient: %f, %f, %f \n",cinfo_vars.me,sum[0].flt,sum[1].flt,sum[2].flt);
-			printf("\n");
+			//printf("mote: %d gradient: %f, %f, %f \n",cinfo_vars.me,sum[0].flt,sum[1].flt,sum[2].flt);
+			//printf("\n");
 		//}
 		
 		cinfo_vars.controls[0].flt=-1*sum[0].flt;

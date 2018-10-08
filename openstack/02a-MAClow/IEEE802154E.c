@@ -2501,10 +2501,10 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
                         );
                     }
 		    ptr += (numlinks-1)*5;
-                }
+                }else{
 		numlinks = *((uint8_t*)(pkt->payload+ptr+4));
 		ptr += (numlinks-1)*5;
-		
+		}
                 slotframelink_ie_checkPass = TRUE;
                 break;
 	  

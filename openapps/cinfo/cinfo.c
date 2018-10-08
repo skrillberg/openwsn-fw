@@ -162,8 +162,8 @@ void cinfo_timer_cb(opentimers_id_t id){
 		board_get_location(&a,&b,&c,neighbor_rows,10);	//a, b, and c are all int16s
 		//iterate through all bytes to get position from buffer
 		sixtop_vars.location.x=a;
-		sixtop_vars.location.x=b;
-		sixtop_vars.location.x=c;
+		sixtop_vars.location.y=b;
+		sixtop_vars.location.z=c;
 
 		position[0].flt = ((float)a)/10;
 		position[1].flt = ((float)b)/10;

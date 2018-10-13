@@ -20,7 +20,7 @@
 
 // in seconds: sixtop maintaince is called every 30 seconds
 #define MAINTENANCE_PERIOD        30
-
+#define EB_PERIOD						 500
 //=========================== variables =======================================
 
 sixtop_vars_t sixtop_vars;
@@ -770,14 +770,14 @@ port_INLINE void sixtop_sendEB(void) {
     uint8_t loc_stream[8] = {(uint8_t)(temp16b & 0x00ff),
                              (uint8_t)((temp16b & 0xff00)>>8),
 
-                             (uint8_t)(sixtop_vars.location.x*10 & 0x00ff),
-			     (uint8_t)((sixtop_vars.location.x*10 & 0xff00)>>8),
+                             (uint8_t)(sixtop_vars.location.x & 0x00ff),
+			     (uint8_t)((sixtop_vars.location.x & 0xff00)>>8),
 
-                             (uint8_t)(sixtop_vars.location.y*10 & 0x00ff), 
-			     (uint8_t)((sixtop_vars.location.y*10 & 0xff00)>>8),
+                             (uint8_t)(sixtop_vars.location.y & 0x00ff), 
+			     (uint8_t)((sixtop_vars.location.y & 0xff00)>>8),
 
-                             (uint8_t)(sixtop_vars.location.z*10 & 0x00ff), 
-			     (uint8_t)((sixtop_vars.location.z*10 & 0xff00)>>8)  };
+                             (uint8_t)(sixtop_vars.location.z & 0x00ff), 
+			     (uint8_t)((sixtop_vars.location.z & 0xff00)>>8)  };
     printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n");
     //printf("%x, %x \n",(uint8_t)(temp16b & 0x00ff),(uint8_t)((temp16b & 0xff00)>>8));
 

@@ -104,10 +104,17 @@ void cinfo_timer_cb(opentimers_id_t id){
 	 uint8_t i;
 	 i = 0;
    
-
+    if(openrandom_get16b()<0xffff/(3*(neighbors_getNumNeighbors()+1))){
+        sixtop_sendEB();
+    }
    	 for (i=0;i<MAXNUMNEIGHBORS;i++) {
       		if (neighbors_vars.neighbors[i].used==TRUE) {
-        //		 printf("Me: %d, Neighbor Address: %x, Rssi: %d \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),neighbors_vars.neighbors[i].addr_64b.addr_64b[7],neighbors_getRssi(i));
+        		 printf("Me: %d, Neighbor Address: %x, Rssi: %d, x: %f, y: %f, z: %f \n",(uint8_t)(idmanager_getMyID(ADDR_64B)->addr_64b[7]),
+																												neighbors_vars.neighbors[i].addr_64b.addr_64b[7],
+																												neighbors_getRssi(i),
+																												(float)(neighbors_vars.neighbors[i].location.x)/10,
+																												(float)(neighbors_vars.neighbors[i].location.y)/10,
+																												(float)(neighbors_vars.neighbors[i].location.z)/10);
      		 }
   	 }
 	 //printf("\n");
@@ -161,6 +168,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 		//printf("Rows addresses, %x, %x, %x, \n",neighbor_rows[0],neighbor_rows[1],neighbor_rows[2]);
 		board_get_location(&a,&b,&c,neighbor_rows,10);	//a, b, and c are all int16s
 		//iterate through all bytes to get position from buffer
+		//location is in decimeters
 		sixtop_vars.location.x=a;
 		sixtop_vars.location.y=b;
 		sixtop_vars.location.z=c;
@@ -205,7 +213,7 @@ void cinfo_timer_cb(opentimers_id_t id){
 		//use only specific neighbors for each mote 
 		int num_neighbors;
 		uint8_t neighbor_indicies[30];
-
+	
 		switch(cinfo_vars.me){
 
 			case 6:

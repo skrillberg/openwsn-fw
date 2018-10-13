@@ -399,6 +399,15 @@ typedef struct {
 } neighborRow_t;
 END_PACK
 
+#define LOCATION_TYPE int16_t
+//location variables received from IE in EB
+typedef struct {
+   LOCATION_TYPE x;
+   LOCATION_TYPE y;
+   LOCATION_TYPE z;
+
+} location_t;
+
 
 //=========================== variables =======================================
 

@@ -714,7 +714,7 @@ port_INLINE void activity_synchronize_endOfFrame(PORT_TIMER_WIDTH capturedTime) 
       // toss the IEEE802.15.4 header -- this does not include IEs as they are processed
       // next.
       packetfunctions_tossHeader(ieee154e_vars.dataReceived,ieee802514_header.headerLength);
-     
+    
       // process IEs
       lenIE = 0;
       if (
@@ -728,7 +728,7 @@ port_INLINE void activity_synchronize_endOfFrame(PORT_TIMER_WIDTH capturedTime) 
          // break from the do-while loop and execute the clean-up code below
          break;
       }
-    
+      
       // turn off the radio
       radio_rfOff();
       
@@ -1843,7 +1843,7 @@ port_INLINE void activity_ri5(PORT_TIMER_WIDTH capturedTime) {
                 break;
             }
         }
-
+	//printf("coordinates: x: %d. y:%d. z:%d \n",coordinates.x,coordinates.y,coordinates.z);
         // toss the IEs including Synch
         packetfunctions_tossHeader(ieee154e_vars.dataReceived,lenIE);
             
@@ -2319,7 +2319,7 @@ bool isValidJoin(OpenQueueEntry_t* eb, ieee802154_header_iht *parsedHeader) {
 
     // toss the header in order to get to IEs
     packetfunctions_tossHeader(eb, parsedHeader->headerLength);
- 
+
     // process IEs
     // at this stage, this can work only if EB is authenticated but not encrypted
     lenIE = 0;
@@ -2391,6 +2391,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
 
     ptr = 0;
     mlme_ie_found = FALSE;
+	 location_t coordinates;
     
     while (ptr<pkt->length){
     
@@ -2419,10 +2420,10 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
         return FALSE;
     }
     for(i = 0; i < pkt->length; i++){
-	   printf("%x | ",pkt->payload[i]);
+	   //printf("%x | ",pkt->payload[i]);
     }
-    printf("\n");
-    printf("ielen: %d \n",ielen);
+    //printf("\n");
+    //printf("ielen: %d \n",ielen);
     while(
         ptr<mlme_ie_content_offset+ielen &&
         (
@@ -2438,14 +2439,14 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
         temp16b  = *((uint8_t*)(pkt->payload)+ptr);
         temp16b |= (*((uint8_t*)(pkt->payload)+ptr+1))<<8;
         ptr += 2;
-	printf("temp 16b: %x \n",temp16b);
+	//printf("temp 16b: %x \n",temp16b);
 
         subtype = (temp16b & IEEE802154E_DESC_TYPE_IE_MASK)>>IEEE802154E_DESC_TYPE_IE_SHIFT;
         if (subtype == 1) {
             // this is long type subID
             subid  = (temp16b & IEEE802154E_DESC_SUBID_LONG_MLME_IE_MASK)>>IEEE802154E_DESC_SUBID_LONG_MLME_IE_SHIFT;
             sublen = (temp16b & IEEE802154E_DESC_LEN_LONG_MLME_IE_MASK);
-	    printf("Subtype 1 subid for IE: %x, IE length: %d \n",subid,sublen);
+	    //printf("Subtype 1 subid for IE: %x, IE length: %d \n",subid,sublen);
             switch(subid){
             case IEEE802154E_MLME_CHANNELHOPPING_IE_SUBID:
                 channelhoppingTemplateIDStoreFromEB(*((uint8_t*)(pkt->payload+ptr)));
@@ -2459,7 +2460,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
             // this is short type subID
             subid  = (temp16b & IEEE802154E_DESC_SUBID_SHORT_MLME_IE_MASK)>>IEEE802154E_DESC_SUBID_SHORT_MLME_IE_SHIFT;
             sublen = (temp16b & IEEE802154E_DESC_LEN_SHORT_MLME_IE_MASK);
-	    printf("Subid for IE: %x, IE length: %d \n",subid,sublen);
+	    //printf("Subid for IE: %x, IE length: %d \n",subid,sublen);
             switch(subid){
             case IEEE802154E_MLME_SYNC_IE_SUBID:
                 asnStoreFromEB((uint8_t*)(pkt->payload+ptr));
@@ -2475,7 +2476,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
                 schedule_setFrameHandle(*((uint8_t*)(pkt->payload)+ptr+1));     // slotframe id
                 oldFrameLength = schedule_getFrameLength();
                 if (oldFrameLength==0){
-	            printf("in old frrame if\n");
+	           // printf("in old frrame if\n");
                     temp16b  = *((uint8_t*)(pkt->payload+ptr+2));               // slotframes length
                     temp16b |= *((uint8_t*)(pkt->payload+ptr+3))<<8;
                     schedule_setFrameLength(temp16b);
@@ -2513,7 +2514,7 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
 
 	    //location IE
             case 0x39:
-                printf("IE Length: %d, MLME IE Length: %d\n",sublen,ielen);
+                //printf("IE Length: %d, MLME IE Length: %d\n",sublen,ielen);
                 
                 x = *((uint8_t*)(pkt->payload+ptr));
 		//printf("x before the second byte is added: %x \n",x);
@@ -2524,9 +2525,12 @@ bool isValidEbFormat(OpenQueueEntry_t* pkt, uint16_t* lenIE){
 
 		z = *((uint8_t*)(pkt->payload+ptr+4));
                 z |= *((uint8_t*)(pkt->payload+ptr+5))<<8;
-
-                printf("Received Location from Neighbor: %x, %x, %x, %x \n",x,y,z,x);
-		printf("pointer: %d, stop condition: %d \n",ptr ,mlme_ie_content_offset+ielen);
+		coordinates.x = x; //x coordinate
+		coordinates.y  = y; //y coordinate
+		coordinates.z  = z; //z coordinate
+                printf("Received Location from Neighbor: %d, %d, %d, %x \n",coordinates.x ,coordinates.y,coordinates.z,pkt->l2_nextORpreviousHop);
+		//printf("pointer: %d, stop condition: %d \n",ptr ,mlme_ie_content_offset+ielen);
+		neighbors_setLocation(&(pkt->l2_nextORpreviousHop),&coordinates);
 		location_checkPass == TRUE;
                 break;
 

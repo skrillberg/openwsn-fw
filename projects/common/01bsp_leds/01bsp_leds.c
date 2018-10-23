@@ -15,6 +15,8 @@ Load this program on your boards. The LEDs should start blinking furiously.
 // bsp modules required
 #include "board.h"
 #include "leds.h"
+#include "accel_mimsy.h"
+#include "sys_ctrl.h"
 
 void some_delay(void);
 
@@ -24,7 +26,10 @@ void some_delay(void);
 int mote_main(void) {uint8_t i;
    
    board_init();
-   
+   mimsyIMUInit();
+   SysCtrlPowerModeSet(SYS_CTRL_PM_2);
+   SysCtrlDeepSleep();
+   /*
    // error LED functions
    leds_error_on();          some_delay();
    leds_error_off();         some_delay();
@@ -68,7 +73,8 @@ int mote_main(void) {uint8_t i;
    // reset the board, so the program starts running again
    board_reset();
    
-   return 0;
+   return 0;*/
+
 }
 
 void some_delay(void) {

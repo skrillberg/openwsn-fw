@@ -6,6 +6,11 @@
 #include "scheduler.h"
 #include "IEEE802154E.h"
 #include "idmanager.h"
+#include "accel_mimsy.h"
+#include "gpio.h"
+#include "headers/hw_gpio.h"
+#include <headers/hw_memmap.h>
+#include "flash_mimsy.h"
 
 //=========================== variables =======================================
 
@@ -21,11 +26,45 @@ static const uint8_t uinject_dst_addr[]   = {
 
 void uinject_timer_cb(opentimers_id_t id);
 void uinject_task_cb(void);
+void imu_int_cb(void);
 
 //=========================== public ==========================================
 
 void uinject_init(void) {
-   
+    mimsyIMUInit();
+    mpu_lp_accel_mode(1);
+    mpu_lp_motion_interrupt(100, 50,20);
+
+
+    volatile uint32_t i;
+
+    //Delay to avoid pin floating problems
+    for (i = 0xFFFF; i != 0; i--);
+
+    // disable interrupts for PA7
+    GPIOPinIntDisable(GPIO_A_BASE, GPIO_PIN_7);
+    // clear the interrupt for PA7
+    GPIOPinIntClear(GPIO_A_BASE, GPIO_PIN_7);
+
+    // configures PA2 to be GPIO input
+    GPIOPinTypeGPIOInput(GPIO_A_BASE, GPIO_PIN_7);
+
+    // input GPIO on rising and falling edges
+    GPIOIntTypeSet(GPIO_A_BASE, GPIO_PIN_7, GPIO_RISING_EDGE);
+
+    // register the port level interrupt handler
+    GPIOPortIntRegister(GPIO_A_BASE,imu_int_cb);
+
+    // clear pin
+    GPIOPinIntClear(GPIO_A_BASE, GPIO_PIN_7);
+   // IntPrioritySet(GPIO_A_BASE, 1<<5);
+    // enable the interrupt (unmasks the interrupt bit)
+    GPIOPinIntEnable(GPIO_A_BASE, GPIO_PIN_7);
+
+    ENABLE_INTERRUPTS();
+
+    // 
+    
     // clear local variables
     memset(&uinject_vars,0,sizeof(uinject_vars_t));
 
@@ -71,6 +110,13 @@ void uinject_receive(OpenQueueEntry_t* pkt) {
 */
 void uinject_timer_cb(opentimers_id_t id){
    
+   scheduler_push_task(uinject_task_cb,TASKPRIO_COAP);
+}
+
+void imu_int_cb(void){
+   IMUData data;
+   GPIOPinIntClear(GPIO_A_BASE, GPIO_PIN_7);
+   mimsyIMURead6Dof(&data);
    scheduler_push_task(uinject_task_cb,TASKPRIO_COAP);
 }
 

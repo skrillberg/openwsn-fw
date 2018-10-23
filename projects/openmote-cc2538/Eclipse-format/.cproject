@@ -37,7 +37,7 @@
                             							
                             <targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross.1028080542" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
                             							
-                            <builder arguments="scons board=mimsy2-cc2538 toolchain=armgcc apps=tutorial" buildPath="${ProjDirPath}/../../../" cleanBuildTarget="-c" command="sudo" enabledIncrementalBuild="true" id="cdt.managedbuild.builder.gnu.cross.1731891423" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
+                            <builder arguments="scons board=mimsy2-cc2538 toolchain=armgcc apps=uinject" buildPath="${ProjDirPath}/../../../" cleanBuildTarget="-c" command="sudo" enabledIncrementalBuild="true" id="cdt.managedbuild.builder.gnu.cross.1731891423" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
                             							
                             <tool id="cdt.managedbuild.tool.gnu.cross.c.compiler.1653300433" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler">
                                 								

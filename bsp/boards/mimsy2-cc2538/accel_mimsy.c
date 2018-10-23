@@ -110,34 +110,59 @@ static void android_orient_cb(unsigned char orientation)
 void mimsyIMUInit(void){
     //board_timer_init();
     uint8_t readbyte;
-    
+    uint8_t *byteptr=&readbyte;
     
     //     i2c_init();
     uint8_t address;
     address=0x69;
+    i2c_write_register_8bit(address,MPU9250_PWR_MGMT_1,0x80);
+     //i2c_write_byte(address,MPU9250_PWR_MGMT_1); //reset
+     //i2c_write_byte(address,0x80);
     
-     i2c_write_byte(address,MPU9250_PWR_MGMT_1); //reset
-     i2c_write_byte(address,0x80);
-    
-      i2c_write_byte(address,MPU9250_PWR_MGMT_1); //wake
-     i2c_write_byte(address,0x00);
-    
-    uint8_t bytes[2]={MPU9250_PWR_MGMT_1,0x01}  ; 
-     i2c_write_bytes(address,bytes,2); //set gyro clock source
-   
+    i2c_write_register_8bit(address,MPU9250_PWR_MGMT_1,0x00);
+      //i2c_write_byte(address,MPU9250_PWR_MGMT_1); //wake
+    // i2c_write_byte(address,0x00);
 
-     bytes[0]=0x6C;
-     bytes[1]=0x03;
-        uint8_t *byteptr=&readbyte;
+     //uint8_t bytes0[2]={MPU9250_PWR_MGMT_2,0x3F}  ;
+    // i2c_write_byte(address,MPU9250_PWR_MGMT_2); //sens enable
+    // i2c_write_bytes(address,bytes0,2);
+
+
+   //  i2c_write_byte(address,MPU9250_PWR_MGMT_2);
+   //  i2c_read_byte(address,byteptr);
+
+    //uint8_t bytes[2]={MPU9250_PWR_MGMT_1,0x40}  ;
+     //i2c_write_bytes(address,bytes,2); //set gyro clock source
+
+     //i2c_write_byte(address,MPU9250_PWR_MGMT_1);
+    // i2c_read_byte(address,byteptr);
+
+    // i2c_write_byte(address,MPU9250_PWR_MGMT_2);
+    // i2c_read_byte(address,byteptr);
+
+    // i2c_write_bytes(address,bytes0,2);
+    // i2c_write_byte(address,MPU9250_PWR_MGMT_2);
+    //  i2c_read_byte(address,byteptr);
+
+
+    // bytes[0]=0x6C;
+    // bytes[1]=0x03;
+
       
-        i2c_write_byte(address,MPU9250_PWR_MGMT_2);
-     i2c_read_byte(address,byteptr);
+     //uint8_t bytes1[2] = {MPU9250_PWR_MGMT_1,0x80};
+     //i2c_write_byte(address,MPU9250_PWR_MGMT_1); //reset
+     //i2c_write_byte(address,bytes1);
+     // i2c_write_byte(address,MPU9250_PWR_MGMT_1); //wake
+     //i2c_write_byte(address,0x00);
+
+     mpu_set_sensors(INV_XYZ_ACCEL | INV_XYZ_GYRO | INV_XYZ_COMPASS);
+     //i2c_write_byte(address,MPU9250_PWR_MGMT_2);
+    // i2c_read_byte(address,byteptr);
+    // i2c_write_byte(address,MPU9250_PWR_MGMT_1);
+    // i2c_read_byte(address,byteptr);
      
-     i2c_write_byte(address,MPU9250_PWR_MGMT_2); //sens enable
-     i2c_write_byte(address,0x00);
-     
-     i2c_write_byte(address,MPU9250_PWR_MGMT_2);
-     i2c_read_byte(address,byteptr);
+
+
   
   
 }

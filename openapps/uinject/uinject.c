@@ -33,7 +33,7 @@ void imu_int_cb(void);
 void uinject_init(void) {
     mimsyIMUInit();
     mpu_lp_accel_mode(1);
-    mpu_lp_motion_interrupt(100, 50,20);
+    mpu_lp_motion_interrupt(100, 500,10);
 
 
     volatile uint32_t i;
@@ -110,7 +110,7 @@ void uinject_receive(OpenQueueEntry_t* pkt) {
 */
 void uinject_timer_cb(opentimers_id_t id){
    
-   scheduler_push_task(uinject_task_cb,TASKPRIO_COAP);
+   //scheduler_push_task(uinject_task_cb,TASKPRIO_COAP);
 }
 
 void imu_int_cb(void){

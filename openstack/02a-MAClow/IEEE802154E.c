@@ -25,7 +25,8 @@
 ieee154e_vars_t    ieee154e_vars;
 ieee154e_stats_t   ieee154e_stats;
 ieee154e_dbg_t     ieee154e_dbg;
-
+//deep sleep
+int serialrx_flag;
 //=========================== prototypes ======================================
 
 // SYNCHRONIZING
@@ -100,6 +101,8 @@ bool     debugPrint_isSync(void);
 void     isr_ieee154e_newSlot(opentimers_id_t id);
 void     isr_ieee154e_timer(opentimers_id_t id);
 
+int isSlotSerialRx(void);
+
 //=========================== admin ===========================================
 
 /**
@@ -113,7 +116,7 @@ void ieee154e_init(void) {
     // initialize variables
     memset(&ieee154e_vars,0,sizeof(ieee154e_vars_t));
     memset(&ieee154e_dbg,0,sizeof(ieee154e_dbg_t));
-    
+    serialrx_flag = 0;
     // set singleChannel to 0 to enable channel hopping.
     ieee154e_vars.singleChannel     = 11;
     ieee154e_vars.isAckEnabled      = TRUE;
@@ -809,6 +812,7 @@ port_INLINE void activity_ti1ORri1(void) {
     bool        changeToRX=FALSE;
     bool        couldSendEB=FALSE;
 
+    serialrx_flag = 0;
     // increment ASN (do this first so debug pins are in sync)
     incrementAsnOffset();
     
@@ -1101,6 +1105,11 @@ port_INLINE void activity_ti1ORri1(void) {
             // deal with the case when schedule multi slots
             adaptive_sync_countCompensationTimeout_compoundSlots(NUMSERIALRX-1);
 #endif
+            //deep sleep
+            if (idmanager_getIsDAGroot()==FALSE) {
+                serialrx_flag = 1;
+            }
+
             break;
         case CELLTYPE_MORESERIALRX:
             // do nothing (not even endSlot())
@@ -1116,6 +1125,10 @@ port_INLINE void activity_ti1ORri1(void) {
             endSlot();
             break;
     }
+}
+
+int isSlotSerialRx(void) {
+    return serialrx_flag;
 }
 
 port_INLINE void activity_ti2(void) {

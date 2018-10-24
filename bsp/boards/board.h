@@ -31,7 +31,7 @@ typedef enum {
 void board_init(void);
 void board_sleep(void);
 void board_reset(void);
-
+void board_deep_sleep(void); 
 /**
 \}
 \}
